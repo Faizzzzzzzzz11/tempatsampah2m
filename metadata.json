@@ -1,0 +1,6 @@
+{
+  "name": "TrashRoute — Dashboard Pengelola & Optimasi Rute Cerdas IoT",
+  "description": "Sistem Pengelolaan & Optimasi Rute Pengangkutan Sampah Cerdas IoT Wilayah Kapanewon Godean Sleman DIY berbasis Algoritma TSP Manhattan, Held-Karp DP, Multi-Trip, dan Perutean Jalan Nyata OSRM.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
