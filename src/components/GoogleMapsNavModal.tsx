@@ -109,7 +109,7 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
   if (!isOpen) return null;
 
   const handleCopyRouteLink = async () => {
-    const ok = await copyToClipboard(activeRouteUrl);
+    const ok = await copyToClipboard(activeUniversalRouteUrl);
     if (ok) {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
@@ -307,13 +307,13 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row gap-2.5">
               <a
-                href={activeRouteUrl}
+                href={activeUniversalRouteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-['Bricolage_Grotesque'] text-sm font-bold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.01] active:scale-[0.99] text-center"
               >
                 <ExternalLink className="h-4 w-4" />
-                <span>Buka Rute di Google Maps (Mode Mobil)</span>
+                <span>🚗 Buka Rute di Google Maps (Mode Mobil Otomatis)</span>
               </a>
 
               <button
@@ -328,26 +328,26 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
                 ) : (
                   <>
                     <Copy className="h-4 w-4 text-blue-600" />
-                    <span>Salin Link Rute</span>
+                    <span>Salin Link Rute Mobil</span>
                   </>
                 )}
               </button>
             </div>
 
-            {/* Alternative Universal App API Button */}
+            {/* Alternative Direct Path Link */}
             <div className="flex items-center justify-between gap-2 rounded-xl border border-[#E5E9E2] bg-[#F8FAF6] p-2 dark:bg-[#15242B] dark:border-[#243741]">
               <span className="text-[11px] text-[#5B6A60] dark:text-[#A3B9B1] flex items-center gap-1.5">
-                <span>📱 Alternatif Aplikasi HP:</span>
-                <span className="font-semibold text-[#10303A] dark:text-white">Format API Google Maps Resmi</span>
+                <span>🌐 Format Alternatif:</span>
+                <span className="font-semibold text-[#10303A] dark:text-white">Direct Slash Route Path</span>
               </span>
               <a
-                href={activeUniversalRouteUrl}
+                href={activeRouteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 transition hover:bg-blue-50 dark:bg-[#17262D] dark:border-blue-700 dark:text-blue-300"
               >
                 <ExternalLink className="h-3 w-3" />
-                <span>Buka via API Mode Mobil</span>
+                <span>Buka Direct URL</span>
               </a>
             </div>
           </div>

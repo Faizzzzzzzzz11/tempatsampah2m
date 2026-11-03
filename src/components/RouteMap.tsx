@@ -969,8 +969,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       <div style="font-size:11px;color:#64748b;margin-top:2px;">📍 ${depot.location || 'Kapanewon Godean'}</div>
       <div style="font-size:11px;color:#0F6B73;font-weight:bold;margin-top:4px;">Pusat Armada &amp; Penampungan TPS 3R</div>
       <div style="font-size:10px;color:#10b981;font-weight:bold;margin-top:2px;">✅ Akses Jalan Arteri Godean Bebas Hambatan (≥ 5.5m)</div>
-      <a href="https://www.google.com/maps/dir/?api=1&destination=${depot.lat},${depot.lng}&travelmode=driving" target="_blank" rel="noopener noreferrer" style="width:100%;margin-top:6px;padding:6px;font-size:11px;background:#2563EB;color:white;border:none;border-radius:6px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:bold;cursor:pointer;">
-        <span>🗺️ Rute Pangkalan di Google Maps</span>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${depot.lat},${depot.lng}&travelmode=driving&dirflg=d" target="_blank" rel="noopener noreferrer" style="width:100%;margin-top:6px;padding:6px;font-size:11px;background:#2563EB;color:white;border:none;border-radius:6px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:bold;cursor:pointer;">
+        <span>🚗 Rute Pangkalan di Google Maps (Mode Mobil)</span>
       </a>
       <button id="btnOpenDepotModalRoute" style="width:100%;margin-top:6px;padding:6px;font-size:11px;background:#1D4ED8;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">🏭 Atur / Pindah Pangkalan</button>
     `;
@@ -1061,8 +1061,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           <button id="routeDelBtn-${b.id}" style="flex:1;padding:6px;font-size:11px;background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA;border-radius:6px;cursor:pointer;font-weight:bold;">🗑️ Hapus</button>
         </div>
 
-        <a href="https://www.google.com/maps/dir/?api=1&destination=${pos[0]},${pos[1]}&travelmode=driving" target="_blank" rel="noopener noreferrer" style="width:100%;margin-bottom:6px;padding:6px;font-size:11px;background:#2563EB;color:white;border:none;border-radius:6px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:bold;cursor:pointer;">
-          <span>🗺️ Navigasi Google Maps</span>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${pos[0]},${pos[1]}&travelmode=driving&dirflg=d" target="_blank" rel="noopener noreferrer" style="width:100%;margin-bottom:6px;padding:6px;font-size:11px;background:#2563EB;color:white;border:none;border-radius:6px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:bold;cursor:pointer;">
+          <span>🚗 Navigasi Google Maps (Mode Mobil)</span>
         </a>
 
         <button id="routeRepBtn-${b.id}" style="width:100%;padding:6px;font-size:11px;background:#DC2626;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:4px;">

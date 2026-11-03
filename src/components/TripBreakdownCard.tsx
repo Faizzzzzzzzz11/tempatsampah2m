@@ -2,7 +2,7 @@ import React from 'react';
 import { ListOrdered, Split, Eye, Play, Navigation, ExternalLink } from 'lucide-react';
 import { ExecutionResult, SystemConfig, Trip, Depot } from '../types';
 import { toRealKm, toTravelMinutes } from '../services/routingEngine';
-import { buildGoogleMapsTripRouteUrl } from '../services/googleMapsService';
+import { buildGoogleMapsUniversalTripUrl } from '../services/googleMapsService';
 
 interface TripBreakdownCardProps {
   result: ExecutionResult;
@@ -147,7 +147,7 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                   <div className="flex flex-wrap items-center gap-1.5 text-xs">
                     {depot && (
                       <a
-                        href={buildGoogleMapsTripRouteUrl(trip, depot)}
+                        href={buildGoogleMapsUniversalTripUrl(trip, depot)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
@@ -304,11 +304,11 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
                         {depot && (
                           <a
-                            href={buildGoogleMapsTripRouteUrl(subTripObj, depot)}
+                            href={buildGoogleMapsUniversalTripUrl(subTripObj, depot)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
-                            title={`Buka rute tetap Trip ${st.subIndex || i + 1} langsung di Google Maps`}
+                            title={`Buka rute tetap Trip ${st.subIndex || i + 1} langsung di Google Maps (Mode Mobil)`}
                           >
                             <Navigation className="h-3 w-3 fill-current" />
                             <span>G-Maps</span>
@@ -401,11 +401,11 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                   <div className="flex flex-wrap items-center gap-1.5 text-xs">
                     {depot && (
                       <a
-                        href={buildGoogleMapsTripRouteUrl(fixedTrip, depot)}
+                        href={buildGoogleMapsUniversalTripUrl(fixedTrip, depot)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
-                        title="Buka rute konvensional langsung di Google Maps"
+                        title="Buka rute konvensional langsung di Google Maps (Mode Mobil)"
                       >
                         <Navigation className="h-3 w-3 fill-current" />
                         <span>G-Maps</span>

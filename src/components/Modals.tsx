@@ -189,13 +189,13 @@ export const EditBinModal: React.FC<EditBinModalProps> = ({
               <span>{bin.lat.toFixed(5)}, {bin.lng.toFixed(5)}</span>
             </div>
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${bin.lat},${bin.lng}&travelmode=driving`}
+              href={`https://www.google.com/maps/dir/?api=1&destination=${bin.lat},${bin.lng}&travelmode=driving&dirflg=d`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 transition"
-              title="Buka rute navigasi ke tong ini di Google Maps"
+              title="Buka rute navigasi ke tong ini di Google Maps (Mode Mobil)"
             >
-              <span>🗺️ Google Maps</span>
+              <span>🚗 Google Maps (Mobil)</span>
             </a>
           </div>
 

@@ -24,8 +24,7 @@ export function buildGoogleMapsSearchUrl(lat: number, lng: number): string {
 
 /**
  * Builds a point-to-point driving direction URL from a specific start coordinate to target coordinate.
- * Useful for navigating between consecutive stops in sequence.
- * Strictly forces Automobile / Car Mode (travelmode=driving, dirflg=d) avoiding motorcycle alleys.
+ * Strictly forces Automobile / Car Mode (travelmode=driving, dirflg=d, data=!4m2!4m1!3e0) avoiding motorcycle alleys.
  */
 export function buildGoogleMapsLegUrl(
   startLat: number,
@@ -33,7 +32,7 @@ export function buildGoogleMapsLegUrl(
   destLat: number,
   destLng: number
 ): string {
-  return `https://www.google.com/maps/dir/${startLat.toFixed(6)},${startLng.toFixed(6)}/${destLat.toFixed(6)},${destLng.toFixed(6)}?travelmode=driving&dirflg=d`;
+  return `https://www.google.com/maps/dir/${startLat.toFixed(6)},${startLng.toFixed(6)}/${destLat.toFixed(6)},${destLng.toFixed(6)}?data=!4m2!4m1!3e0&dirflg=d&travelmode=driving`;
 }
 
 /**
@@ -118,7 +117,7 @@ export function buildGoogleMapsSlashRouteUrl(
     .map(p => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`)
     .join('/');
 
-  return `https://www.google.com/maps/dir/${pathSegments}?travelmode=driving&dirflg=d`;
+  return `https://www.google.com/maps/dir/${pathSegments}?data=!4m2!4m1!3e0&dirflg=d&travelmode=driving`;
 }
 
 /**
