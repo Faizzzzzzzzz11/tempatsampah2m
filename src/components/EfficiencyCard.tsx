@@ -32,11 +32,13 @@ export const EfficiencyCard: React.FC<EfficiencyCardProps> = ({
 }) => {
   const [showSubTripsDetail, setShowSubTripsDetail] = useState(false);
 
-  const convKm = toRealKm(convPlan.dist);
-  const smartKm = toRealKm(result.totalDistance);
-  const savedDist = convPlan.dist - result.totalDistance;
-  const pctSaved = convPlan.dist > 0 ? ((savedDist / convPlan.dist) * 100).toFixed(1) : '0.0';
-  const savedKm = (parseFloat(convKm) - parseFloat(smartKm)).toFixed(1);
+  const convKm = fixedTrip?.realRoadKm || toRealKm(convPlan.dist);
+  const smartKm = result.totalRealRoadKm || toRealKm(result.totalDistance);
+  const convDistNum = parseFloat(convKm) || convPlan.dist;
+  const smartDistNum = parseFloat(smartKm) || result.totalDistance;
+  const savedDist = convDistNum - smartDistNum;
+  const pctSaved = convDistNum > 0 ? ((savedDist / convDistNum) * 100).toFixed(1) : '0.0';
+  const savedKm = (convDistNum - smartDistNum).toFixed(1);
   const savedFuel = (parseFloat(savedKm) * (config.fuelPerKm || 0.22)).toFixed(1);
 
   const isFixedActive = selectedTripFilter === 'fixed' || (typeof selectedTripFilter === 'string' && selectedTripFilter.startsWith('fixed-'));
@@ -65,7 +67,7 @@ export const EfficiencyCard: React.FC<EfficiencyCardProps> = ({
               ) : null}
             </div>
             <p className="text-[11px] text-[#5B6A60] dark:text-[#A3B9B1]">
-              Komparasi konsumsi jarak tempuh jalan raya, BBM solar, dan kapasitas armada truk (C = {config.C.toLocaleString()} L).
+              Komparasi konsumsi jarak tempuh jalan raya (Mode Mobil / Roda 4), BBM solar, dan kapasitas armada truk (C = {config.C.toLocaleString()} L).
             </p>
           </div>
         </div>

@@ -9,9 +9,10 @@ interface KpiStripProps {
 }
 
 export const KpiStrip: React.FC<KpiStripProps> = ({ bins, result, config }) => {
-  const totalKm = toRealKm(result.totalDistance);
-  const totalMin = toTravelMinutes(result.totalDistance, config);
-  const totalFuel = toFuelLiters(result.totalDistance, config);
+  const totalKm = result.totalRealRoadKm || toRealKm(result.totalDistance);
+  const totalDistNumber = parseFloat(result.totalRealRoadKm || '') || result.totalDistance;
+  const totalMin = toTravelMinutes(totalDistNumber, config);
+  const totalFuel = toFuelLiters(totalDistNumber, config);
 
   return (
     <>

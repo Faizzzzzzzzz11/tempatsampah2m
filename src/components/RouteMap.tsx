@@ -605,12 +605,13 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       }).addTo(map);
 
       const tripKm = geom.realDistanceKm || trip.realRoadKm || toRealKm(trip.distance);
-      const tripMin = toTravelMinutes(trip.distance, config);
+      const tripDistNum = parseFloat(tripKm) || trip.distance;
+      const tripMin = toTravelMinutes(tripDistNum, config);
       const statusLabel =
         geom.status === 'loading'
-          ? 'Memuat rute OSRM...'
+          ? 'Memuat rute OSRM (Mode Mobil)...'
           : geom.status === 'ok'
-          ? 'Sinkron Jalan Nyata (OSRM/G-Maps)'
+          ? 'Sinkron Jalan Nyata Mode Mobil (OSRM/G-Maps)'
           : 'Jaringan Jalan Nyata Godean';
 
       inner.bindTooltip(

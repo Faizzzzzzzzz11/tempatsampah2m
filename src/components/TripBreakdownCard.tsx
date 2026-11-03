@@ -135,7 +135,7 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                       {trip.bins.length} Tong Sampah Terlayani
                     </span>
                     <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300">
-                      ✅ Muat Truk (Lebar ≥ 5.5m)
+                      🚗 Mode Mobil (Lebar ≥ 5.5m)
                     </span>
                     {isIsolated && (
                       <span className="animate-pulse rounded bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white">
@@ -151,10 +151,10 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
-                        title="Buka rute turn-by-turn langsung di Google Maps"
+                        title="Buka rute turn-by-turn langsung di Google Maps (Mode Mobil)"
                       >
                         <Navigation className="h-3 w-3 fill-current" />
-                        <span>G-Maps</span>
+                        <span>G-Maps Mobil</span>
                       </a>
                     )}
                     {onOpenGoogleMapsForTrip && (
@@ -189,7 +189,7 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
 
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[#5B6A60] dark:text-[#A3B9B1]">
                   <span>
-                    Jarak Jalan: <strong className="text-[#10303A] dark:text-white">{tripKm} km</strong>
+                    Jarak Jalan (Mobil): <strong className="text-[#10303A] dark:text-white">{tripKm} km</strong>
                   </span>
                   <span>
                     Waktu Tempuh: <strong className="text-[#10303A] dark:text-white">≈ {tripMin} mnt</strong>

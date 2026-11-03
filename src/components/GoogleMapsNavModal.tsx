@@ -11,19 +11,18 @@ import {
   ArrowRight,
   Info,
   Route,
-  Layers,
   ChevronRight,
 } from 'lucide-react';
 import { Depot, ExecutionResult, SystemConfig, Trip } from '../types';
 import {
   buildGoogleMapsTripRouteUrl,
+  buildGoogleMapsUniversalTripUrl,
   buildGoogleMapsNavUrl,
   getTripStopsWithGmapsLinks,
-  buildTripRouteSegments,
   copyToClipboard,
-  TripRouteSegment,
 } from '../services/googleMapsService';
 import { toRealKm, toTravelMinutes } from '../services/routingEngine';
+import { DistanceMatrixResult } from '../services/distanceMatrix';
 
 interface GoogleMapsNavModalProps {
   isOpen: boolean;
@@ -33,6 +32,7 @@ interface GoogleMapsNavModalProps {
   config: SystemConfig;
   fixedTrip?: Trip;
   initialTripIndex?: number | string;
+  distMatrix?: DistanceMatrixResult | null;
 }
 
 export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
@@ -43,6 +43,7 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
   config,
   fixedTrip,
   initialTripIndex,
+  distMatrix,
 }) => {
   const [selectedTripKey, setSelectedTripKey] = useState<string>(() => {
     if (initialTripIndex !== undefined && initialTripIndex !== 'all') {
@@ -51,7 +52,6 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
     return result.trips.length > 0 ? String(result.trips[0].tripIndex) : '1';
   });
 
-  const [activeSegmentIndex, setActiveSegmentIndex] = useState<number>(0); // 0 = All, 1 = Seg 1, 2 = Seg 2
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedStepId, setCopiedStepId] = useState<string | number | null>(null);
 
@@ -59,7 +59,6 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
   React.useEffect(() => {
     if (initialTripIndex !== undefined && initialTripIndex !== 'all') {
       setSelectedTripKey(String(initialTripIndex));
-      setActiveSegmentIndex(0);
     }
   }, [initialTripIndex]);
 
@@ -88,26 +87,24 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
     return result.trips.find(t => t.tripIndex === idx) || result.trips[0] || fixedTrip;
   }, [selectedTripKey, result.trips, fixedTrip, depot]);
 
-  // Route Segments for handling long routes without waypoint truncation in mobile app
-  const routeSegments: TripRouteSegment[] = useMemo(() => {
-    if (!activeTrip) return [];
-    return buildTripRouteSegments(activeTrip, depot, 8);
-  }, [activeTrip, depot]);
-
   const activeRouteUrl = useMemo(() => {
     if (!activeTrip) {
       return buildGoogleMapsNavUrl(depot.lat, depot.lng);
     }
-    if (activeSegmentIndex > 0 && routeSegments[activeSegmentIndex - 1]) {
-      return routeSegments[activeSegmentIndex - 1].url;
-    }
     return buildGoogleMapsTripRouteUrl(activeTrip, depot);
-  }, [activeTrip, depot, activeSegmentIndex, routeSegments]);
+  }, [activeTrip, depot]);
+
+  const activeUniversalRouteUrl = useMemo(() => {
+    if (!activeTrip) {
+      return buildGoogleMapsNavUrl(depot.lat, depot.lng);
+    }
+    return buildGoogleMapsUniversalTripUrl(activeTrip, depot);
+  }, [activeTrip, depot]);
 
   const stopItems = useMemo(() => {
     if (!activeTrip) return [];
-    return getTripStopsWithGmapsLinks(activeTrip, depot);
-  }, [activeTrip, depot]);
+    return getTripStopsWithGmapsLinks(activeTrip, depot, distMatrix?.getDist);
+  }, [activeTrip, depot, distMatrix]);
 
   if (!isOpen) return null;
 
@@ -129,7 +126,6 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
 
   const tripKm = activeTrip ? (activeTrip.realRoadKm || toRealKm(activeTrip.distance)) : 0;
   const tripMin = activeTrip ? toTravelMinutes(activeTrip.distance, config) : 0;
-  const hasMultipleSegments = routeSegments.length > 1;
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 backdrop-blur-xs overflow-y-auto">
@@ -173,7 +169,6 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
                     key={t.tripIndex}
                     onClick={() => {
                       setSelectedTripKey(String(t.tripIndex));
-                      setActiveSegmentIndex(0);
                     }}
                     className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 font-['Bricolage_Grotesque'] text-xs font-bold transition cursor-pointer ${
                       isSelected
@@ -200,7 +195,6 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
                         key={key}
                         onClick={() => {
                           setSelectedTripKey(key);
-                          setActiveSegmentIndex(0);
                         }}
                         className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 font-['Bricolage_Grotesque'] text-xs font-bold transition cursor-pointer ${
                           isSelected
@@ -219,7 +213,6 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
                   <button
                     onClick={() => {
                       setSelectedTripKey('fixed');
-                      setActiveSegmentIndex(0);
                     }}
                     className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 font-['Bricolage_Grotesque'] text-xs font-bold transition cursor-pointer ${
                       selectedTripKey === 'fixed'
@@ -235,7 +228,6 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
                 <button
                   onClick={() => {
                     setSelectedTripKey('fixed');
-                    setActiveSegmentIndex(0);
                   }}
                   className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 font-['Bricolage_Grotesque'] text-xs font-bold transition cursor-pointer ${
                     selectedTripKey === 'fixed'
@@ -247,6 +239,26 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
                   <span>RUTE TETAP KONVENSIONAL</span>
                 </button>
               ) : null}
+            </div>
+          </div>
+
+          {/* Car Mode Guarantee Banner */}
+          <div className="flex items-start gap-2.5 rounded-xl border border-emerald-300 bg-emerald-50/90 p-3 text-xs text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold shadow-xs">
+              <Truck className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <strong className="font-['Bricolage_Grotesque'] text-xs font-bold text-emerald-900 dark:text-emerald-100">
+                  Mode Rute: Mobil / Armada Roda 4 (Bukan Sepeda Motor)
+                </strong>
+                <span className="rounded bg-emerald-200/90 px-2 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-800 dark:text-emerald-200">
+                  Mode Mobil: travelmode=driving · dirflg=d
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-emerald-800/90 dark:text-emerald-300 leading-relaxed">
+                Navigasi Google Maps dikunci permanen pada mode mobil sehingga armada truk sampah diarahkan melalui koridor jalan aspal yang muat dilewati kendaraan roda 4 dan tidak masuk ke gang sempit motor. Jarak tempuh dihitung akurat berdasarkan jalan raya riil.
+              </p>
             </div>
           </div>
 
@@ -263,10 +275,13 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
               </div>
               <div className="p-1">
                 <span className="block text-[10px] font-medium text-[#5B6A60] dark:text-[#A3B9B1]">
-                  Jarak Jalan Raya
+                  Jarak Jalan Raya (Mobil)
                 </span>
                 <span className="font-['Bricolage_Grotesque'] text-sm font-bold text-blue-600 dark:text-blue-400">
                   {tripKm} km
+                </span>
+                <span className="block text-[9px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                  ✓ Sinkron Google Maps
                 </span>
               </div>
               <div className="p-1">
@@ -288,93 +303,62 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
             </div>
           )}
 
-          {/* Route Segments Selector (if route has > 8 bins) */}
-          {hasMultipleSegments && (
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 dark:bg-indigo-950/40 dark:border-indigo-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
-                  <Layers className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Pembagian Bagian Rute (Batas Maksimal Google Maps HP):</span>
-                </span>
-                <span className="text-[10px] text-indigo-800 dark:text-indigo-300">
-                  {routeSegments.length} Bagian
-                </span>
-              </div>
-              <p className="text-[11px] text-indigo-900/80 dark:text-indigo-300 mb-2.5">
-                Aplikasi Google Maps di HP membatasi maksimal 9 titik per rute. Pilih <strong>Bagian</strong> di bawah untuk membuka navigasi bertahap tanpa ada titik yang terpotong.
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setActiveSegmentIndex(0)}
-                  className={`rounded-lg px-2.5 py-1.5 font-bold transition text-xs cursor-pointer ${
-                    activeSegmentIndex === 0
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-100 dark:bg-[#17262D] dark:text-indigo-200 dark:border-indigo-800'
-                  }`}
-                >
-                  Seluruh Rute ({activeTrip?.bins.length} Tong)
-                </button>
-                {routeSegments.map((seg, sIdx) => {
-                  const isSegActive = activeSegmentIndex === sIdx + 1;
-                  return (
-                    <button
-                      key={seg.segmentIndex}
-                      onClick={() => setActiveSegmentIndex(sIdx + 1)}
-                      className={`rounded-lg px-2.5 py-1.5 font-bold transition text-xs cursor-pointer ${
-                        isSegActive
-                          ? 'bg-indigo-600 text-white shadow-2xs'
-                          : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-100 dark:bg-[#17262D] dark:text-indigo-200 dark:border-indigo-800'
-                      }`}
-                    >
-                      {seg.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Big Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <a
-              href={activeRouteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-['Bricolage_Grotesque'] text-sm font-bold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.01] active:scale-[0.99] text-center"
-            >
-              <ExternalLink className="h-4 w-4" />
-              <span>
-                {activeSegmentIndex === 0
-                  ? 'Buka Rute di Google Maps (Urutan Presisi)'
-                  : `Buka ${routeSegments[activeSegmentIndex - 1]?.label} di Google Maps`}
-              </span>
-            </a>
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <a
+                href={activeRouteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-['Bricolage_Grotesque'] text-sm font-bold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.01] active:scale-[0.99] text-center"
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span>Buka Rute di Google Maps (Mode Mobil)</span>
+              </a>
 
-            <button
-              onClick={handleCopyRouteLink}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#C4CEC2] bg-white px-4 py-3 font-bold text-[#10303A] shadow-xs transition hover:bg-slate-100 dark:bg-[#15242B] dark:border-[#243741] dark:text-white cursor-pointer"
-            >
-              {copiedLink ? (
-                <>
-                  <Check className="h-4 w-4 text-emerald-600" />
-                  <span className="text-emerald-600 font-bold">Link Tersalin!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4 text-blue-600" />
-                  <span>Salin Link Rute</span>
-                </>
-              )}
-            </button>
+              <button
+                onClick={handleCopyRouteLink}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#C4CEC2] bg-white px-4 py-3 font-bold text-[#10303A] shadow-xs transition hover:bg-slate-100 dark:bg-[#15242B] dark:border-[#243741] dark:text-white cursor-pointer"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="h-4 w-4 text-emerald-600" />
+                    <span className="text-emerald-600 font-bold">Link Tersalin!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 text-blue-600" />
+                    <span>Salin Link Rute</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Alternative Universal App API Button */}
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-[#E5E9E2] bg-[#F8FAF6] p-2 dark:bg-[#15242B] dark:border-[#243741]">
+              <span className="text-[11px] text-[#5B6A60] dark:text-[#A3B9B1] flex items-center gap-1.5">
+                <span>📱 Alternatif Aplikasi HP:</span>
+                <span className="font-semibold text-[#10303A] dark:text-white">Format API Google Maps Resmi</span>
+              </span>
+              <a
+                href={activeUniversalRouteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 transition hover:bg-blue-50 dark:bg-[#17262D] dark:border-blue-700 dark:text-blue-300"
+              >
+                <ExternalLink className="h-3 w-3" />
+                <span>Buka via API Mode Mobil</span>
+              </a>
+            </div>
           </div>
 
           {/* Quick Notice Info */}
           <div className="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-200 p-2.5 text-[11px] text-blue-900 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-200">
             <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
             <div>
-              <strong>Jaminan Urutan Titik (Zero Waypoint Drift):</strong>
+              <strong>Jaminan Urutan Titik &amp; Mode Mobil (Zero Drift):</strong>
               <p className="mt-0.5 text-blue-800 dark:text-blue-300">
-                Link navigasi menggunakan format path direct Google Maps: stop 1, stop 2, dst. dikunci sesuai urutan optimal hasil perhitungan algoritma. Untuk pengemudi di jalan, Anda juga dapat menekan <strong>"Navigasi Leg"</strong> pada tiap titik di bawah untuk panduan step-by-step dari titik sebelumnya.
+                Format path direct Google Maps: stop 1, stop 2, dst. dikunci sesuai urutan optimal hasil perhitungan algoritma dan parameter mode mobil (`travelmode=driving`, `dirflg=d`, &amp; `!3e0`). Untuk pengemudi di jalan, Anda juga dapat menekan <strong>"Navigasi Leg"</strong> pada tiap titik di bawah untuk panduan step-by-step dari titik sebelumnya.
               </p>
             </div>
           </div>

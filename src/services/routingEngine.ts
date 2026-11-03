@@ -1023,11 +1023,9 @@ export function runFlowchartLogic(
     }
     const geom = roadGeometryStore.getTourGeometry(trip.tour, true);
     trip.roadCoords = geom.coords;
-    if (geom.realDistanceKm) {
-      trip.realRoadKm = geom.realDistanceKm;
-    } else if (geom.coords && geom.coords.length > 1) {
-      const roadKm = calculatePolylineDistanceKm(geom.coords);
-      trip.realRoadKm = roadKm.toFixed(1);
+    const osrmDist = geom.status === 'ok' && geom.realDistanceKm ? parseFloat(geom.realDistanceKm) : null;
+    if (osrmDist && osrmDist > 0 && osrmDist <= trip.distance * 1.15) {
+      trip.realRoadKm = osrmDist.toFixed(1);
     } else {
       trip.realRoadKm = toRealKm(trip.distance);
     }
@@ -1037,6 +1035,19 @@ export function runFlowchartLogic(
   const trulyRejectedYellow = yellowBins.filter(yb => !yb.isAccepted);
   const finalSelectedBins = finalTrips.flatMap(t => t.bins);
   const totalDist = finalTrips.reduce((acc, t) => acc + t.distance, 0);
+  const totalRealKm = finalTrips.reduce((acc, t) => acc + (parseFloat(t.realRoadKm || '0') || t.distance), 0);
+  const formattedRealKm = (Math.round(totalRealKm * 10) / 10).toFixed(1);
+
+  // Synchronize base red tour with actual road geometry
+  const baseRedGeom = roadGeometryStore.getTourGeometry(originalRedTour, true);
+  const baseOsrmDist =
+    baseRedGeom.status === 'ok' && baseRedGeom.realDistanceKm
+      ? parseFloat(baseRedGeom.realDistanceKm)
+      : null;
+  const resolvedBaseRedDist =
+    baseOsrmDist && baseOsrmDist > 0 && baseOsrmDist <= originalRedDist * 1.15
+      ? baseOsrmDist
+      : originalRedDist;
 
   yellowEvaluations.forEach(ev => {
     const binObj = yellowBins.find(yb => yb.id === ev.bin.id);
@@ -1050,8 +1061,9 @@ export function runFlowchartLogic(
   // Requirement: Remove "Optimal" from statusMessage when distance source is fallback
   const isOptimal = distanceSource === 'osrm';
   const statusPrefix = isOptimal ? 'Optimal: ' : 'Hasil: ';
-  const sourceLabel = isOptimal ? 'Jalan Raya OSRM' : 'Estimasi (Fallback Haversine 1.3x)';
-  const statusMessage = `${statusPrefix}${finalTrips.length} trip berhasil disusun dengan total jarak ${totalDist.toFixed(1)} km (${sourceLabel}).`;
+  const sourceLabel = isOptimal ? 'Jalan Raya OSRM (Mode Mobil)' : 'Estimasi (Fallback Haversine 1.3x)';
+  const displayTotalKm = formattedRealKm || totalDist.toFixed(1);
+  const statusMessage = `${statusPrefix}${finalTrips.length} trip berhasil disusun dengan total jarak ${displayTotalKm} km (${sourceLabel}).`;
 
   return {
     redBins,
@@ -1066,6 +1078,7 @@ export function runFlowchartLogic(
     tripCount: finalTrips.length,
     trips: finalTrips,
     totalDistance: Math.round(totalDist * 100) / 100,
+    totalRealRoadKm: formattedRealKm,
     baseRedDist: Math.round(originalRedDist * 100) / 100,
     distanceSource,
     statusMessage,
@@ -1114,18 +1127,23 @@ export function getFixedTrip(
     const subGeom = roadGeometryStore.getTourGeometry(subTour, true);
     // Matrix distance using D (critical so custom distance functions/matrices are evaluated)
     const subDist = calculateTourDistance(subTour, cfg, D);
+    const subOsrmDist =
+      subGeom.status === 'ok' && subGeom.realDistanceKm
+        ? parseFloat(subGeom.realDistanceKm)
+        : null;
     const realKm =
-      subGeom.realDistanceKm ||
-      (subGeom.coords && subGeom.coords.length > 1
-        ? calculatePolylineDistanceKm(subGeom.coords).toFixed(1)
-        : toRealKm(subDist));
+      subOsrmDist && subOsrmDist > 0 && subOsrmDist <= subDist * 1.15
+        ? subOsrmDist.toFixed(1)
+        : toRealKm(subDist);
+
+    const finalSubDist = parseFloat(realKm) || subDist;
 
     return {
       subIndex: idx + 1,
       bins: g,
       tour: subTour,
       loadLiter: g.reduce((sum, b) => sum + litersOf(b, cfg), 0),
-      distance: subDist,
+      distance: Math.round(finalSubDist * 10) / 10,
       roadCoords: subGeom.coords,
       realRoadKm: realKm,
     };
@@ -1147,8 +1165,8 @@ export function getFixedTrip(
       : tourGeom.coords;
 
   // Total distance for fixed route is the exact sum of its sub-trips returning to the depot
-  const totalDist = subTrips.reduce((sum, st) => sum + st.distance, 0);
   const totalRealKm = subTrips.reduce((sum, st) => sum + (parseFloat(st.realRoadKm || '0') || st.distance), 0);
+  const resolvedTotalDist = Math.round(totalRealKm * 10) / 10;
 
   const trip: Trip = {
     tripIndex: 'fixed',
@@ -1156,11 +1174,11 @@ export function getFixedTrip(
     bins: groups.flat(),
     loadLiter: subTrips.reduce((sum, t) => sum + t.loadLiter, 0),
     tour,
-    distance: Math.round(totalDist * 100) / 100,
+    distance: resolvedTotalDist,
     subTrips,
     subTripCount: groups.length,
     roadCoords: resolvedRoadCoords,
-    realRoadKm: (Math.round(totalRealKm * 10) / 10).toFixed(1),
+    realRoadKm: resolvedTotalDist.toFixed(1),
   };
   return trip;
 }

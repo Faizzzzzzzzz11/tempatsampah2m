@@ -7,6 +7,10 @@ import { haversineRoadDistance } from './distanceMatrix';
  * This URL format directly launches the native Google Maps app on Android / iOS or web browser in CAR / DRIVING mode.
  * Parameter dirflg=d and travelmode=driving explicitly force 4-wheel automobile mode (bukan motor/roda dua).
  */
+/**
+ * Builds a universal Google Maps Turn-by-Turn Driving Navigation URL to a single destination point.
+ * Explicitly forces 4-wheel automobile / car mode (bukan motor/roda dua) via travelmode=driving, dirflg=d, and !3e0.
+ */
 export function buildGoogleMapsNavUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat.toFixed(6)},${lng.toFixed(6)}&travelmode=driving&dirflg=d`;
 }
@@ -21,7 +25,7 @@ export function buildGoogleMapsSearchUrl(lat: number, lng: number): string {
 /**
  * Builds a point-to-point driving direction URL from a specific start coordinate to target coordinate.
  * Useful for navigating between consecutive stops in sequence.
- * Strictly forces Automobile / Car Mode (travelmode=driving & dirflg=d) avoiding motorcycle alleys.
+ * Strictly forces Automobile / Car Mode (travelmode=driving, dirflg=d) avoiding motorcycle alleys.
  */
 export function buildGoogleMapsLegUrl(
   startLat: number,
@@ -29,7 +33,7 @@ export function buildGoogleMapsLegUrl(
   destLat: number,
   destLng: number
 ): string {
-  return `https://www.google.com/maps/dir/${startLat.toFixed(6)},${startLng.toFixed(6)}/${destLat.toFixed(6)},${destLng.toFixed(6)}?entry=ttu&travelmode=driving&dirflg=d`;
+  return `https://www.google.com/maps/dir/${startLat.toFixed(6)},${startLng.toFixed(6)}/${destLat.toFixed(6)},${destLng.toFixed(6)}?travelmode=driving&dirflg=d`;
 }
 
 /**
@@ -81,11 +85,11 @@ export function getOrderedTripBins(trip: Trip, depot: Depot): Bin[] {
 
 /**
  * Builds a strict, ordered Google Maps Slash-Path Directions URL.
- * URL format: https://www.google.com/maps/dir/lat0,lng0/lat1,lng1/.../latN,lngN?entry=ttu&travelmode=driving&dirflg=d
+ * URL format: https://www.google.com/maps/dir/lat0,lng0/lat1,lng1/.../latN,lngN?data=!4m2!4m1!3e0&entry=ttu&travelmode=driving&dirflg=d
  *
  * This format is guaranteed to preserve the exact sequence of waypoints without re-sorting,
  * does not collapse when origin and destination are both the Depot,
- * and forces Google Maps into Automobile / Car mode (dirflg=d) avoiding motorcycle paths.
+ * and forces Google Maps into Automobile / Car mode (dirflg=d, data=!4m2!4m1!3e0) avoiding motorcycle paths.
  */
 export function buildGoogleMapsSlashRouteUrl(
   points: { lat: number; lng: number }[]
@@ -97,16 +101,29 @@ export function buildGoogleMapsSlashRouteUrl(
     return buildGoogleMapsNavUrl(points[0].lat, points[0].lng);
   }
 
-  const pathSegments = points
+  // Deduplicate consecutive identical coordinates
+  const cleanPoints: { lat: number; lng: number }[] = [];
+  points.forEach((p, idx) => {
+    if (idx === 0) {
+      cleanPoints.push(p);
+    } else {
+      const prev = cleanPoints[cleanPoints.length - 1];
+      if (Math.abs(p.lat - prev.lat) > 0.00001 || Math.abs(p.lng - prev.lng) > 0.00001) {
+        cleanPoints.push(p);
+      }
+    }
+  });
+
+  const pathSegments = cleanPoints
     .map(p => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`)
     .join('/');
 
-  return `https://www.google.com/maps/dir/${pathSegments}?entry=ttu&travelmode=driving&dirflg=d`;
+  return `https://www.google.com/maps/dir/${pathSegments}?travelmode=driving&dirflg=d`;
 }
 
 /**
  * Builds an alternative Google Maps Universal Web / App API Directions URL.
- * Guarantees travelmode=driving & dirflg=d for 4-wheel vehicles (cars & trucks).
+ * Guarantees travelmode=driving and dirflg=d for 4-wheel vehicles (cars & trucks).
  */
 export function buildGoogleMapsUniversalApiUrl(
   points: { lat: number; lng: number }[]
@@ -118,15 +135,28 @@ export function buildGoogleMapsUniversalApiUrl(
     return buildGoogleMapsNavUrl(points[0].lat, points[0].lng);
   }
 
-  const origin = `${points[0].lat.toFixed(6)},${points[0].lng.toFixed(6)}`;
-  const destination = `${points[points.length - 1].lat.toFixed(6)},${points[points.length - 1].lng.toFixed(6)}`;
+  // Deduplicate consecutive identical coordinates
+  const cleanPoints: { lat: number; lng: number }[] = [];
+  points.forEach((p, idx) => {
+    if (idx === 0) {
+      cleanPoints.push(p);
+    } else {
+      const prev = cleanPoints[cleanPoints.length - 1];
+      if (Math.abs(p.lat - prev.lat) > 0.00001 || Math.abs(p.lng - prev.lng) > 0.00001) {
+        cleanPoints.push(p);
+      }
+    }
+  });
 
-  if (points.length === 2) {
+  const origin = `${cleanPoints[0].lat.toFixed(6)},${cleanPoints[0].lng.toFixed(6)}`;
+  const destination = `${cleanPoints[cleanPoints.length - 1].lat.toFixed(6)},${cleanPoints[cleanPoints.length - 1].lng.toFixed(6)}`;
+
+  if (cleanPoints.length === 2) {
     return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving&dirflg=d`;
   }
 
-  const intermediateWaypoints = points
-    .slice(1, points.length - 1)
+  const intermediateWaypoints = cleanPoints
+    .slice(1, cleanPoints.length - 1)
     .map(p => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`)
     .join('|');
 
@@ -190,14 +220,15 @@ export function buildGoogleMapsTripRouteUrl(trip: Trip, depot: Depot): string {
 export function buildTripRouteSegments(
   trip: Trip,
   depot: Depot,
-  maxBinsPerSegment = MAX_GMAPS_WAYPOINTS_PER_ROUTE
+  maxBinsPerSegment = MAX_GMAPS_WAYPOINTS_PER_ROUTE,
+  distFn?: (p1: any, p2: any) => number
 ): TripRouteSegment[] {
   const orderedBins = getOrderedTripBins(trip, depot);
   const [depotLat, depotLng] = getBinLatLng(depot);
 
   if (orderedBins.length <= maxBinsPerSegment) {
     // Fits into a single segment
-    const allStops = getTripStopsWithGmapsLinks(trip, depot);
+    const allStops = getTripStopsWithGmapsLinks(trip, depot, distFn);
     return [
       {
         segmentIndex: 1,
@@ -262,6 +293,9 @@ export function buildTripRouteSegments(
     const segStops = segmentBins.map((b, idx) => {
       const [lat, lng] = getBinLatLng(b);
       const prevCoord = idx === 0 ? segPoints[0] : segPoints[idx];
+      const distFromPrev = distFn
+        ? distFn({ lat: prevCoord.lat, lng: prevCoord.lng }, { lat, lng })
+        : haversineRoadDistance(prevCoord.lat, prevCoord.lng, lat, lng);
       return {
         step: startBinIdx + idx + 1,
         id: b.id,
@@ -275,6 +309,7 @@ export function buildTripRouteSegments(
         legNavUrl: buildGoogleMapsLegUrl(prevCoord.lat, prevCoord.lng, lat, lng),
         searchUrl: buildGoogleMapsSearchUrl(lat, lng),
         prevName: idx === 0 ? startName : segmentBins[idx - 1].name,
+        distanceFromPrevKm: distFromPrev.toFixed(1),
       };
     });
 
@@ -331,7 +366,11 @@ export interface TripStopNavigationItem {
  * Generates an ordered list of navigation stops for a Trip with turn-by-turn Google Maps links.
  * Extracts stops strictly in the chronological order of the TSP tour!
  */
-export function getTripStopsWithGmapsLinks(trip: Trip, depot: Depot): TripStopNavigationItem[] {
+export function getTripStopsWithGmapsLinks(
+  trip: Trip,
+  depot: Depot,
+  distFn?: (p1: any, p2: any) => number
+): TripStopNavigationItem[] {
   const items: TripStopNavigationItem[] = [];
   const [depotLat, depotLng] = getBinLatLng(depot);
   const orderedBins = getOrderedTripBins(trip, depot);
@@ -358,7 +397,9 @@ export function getTripStopsWithGmapsLinks(trip: Trip, depot: Depot): TripStopNa
   orderedBins.forEach((b, idx) => {
     try {
       const [lat, lng] = getBinLatLng(b);
-      const distFromPrev = haversineRoadDistance(prevLat, prevLng, lat, lng);
+      const distFromPrev = distFn
+        ? distFn({ lat: prevLat, lng: prevLng }, { lat, lng })
+        : haversineRoadDistance(prevLat, prevLng, lat, lng);
 
       items.push({
         step: idx + 1,
@@ -385,7 +426,10 @@ export function getTripStopsWithGmapsLinks(trip: Trip, depot: Depot): TripStopNa
   });
 
   // 3. Return to Depot / TPS 3R
-  const finalDist = haversineRoadDistance(prevLat, prevLng, depotLat, depotLng);
+  const finalDist = distFn
+    ? distFn({ lat: prevLat, lng: prevLng }, { lat: depotLat, lng: depotLng })
+    : haversineRoadDistance(prevLat, prevLng, depotLat, depotLng);
+
   items.push({
     step: items.length,
     id: 'P_END',

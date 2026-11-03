@@ -95,6 +95,7 @@ export interface ExecutionResult {
   tripCount: number;
   trips: Trip[];
   totalDistance: number;
+  totalRealRoadKm?: string;
   baseRedDist: number;
   statusMessage: string;
   distanceSource?: 'osrm' | 'fallback';

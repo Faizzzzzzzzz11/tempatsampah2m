@@ -1334,6 +1334,7 @@ export default function App() {
         config={config}
         fixedTrip={fixedTrip}
         initialTripIndex={gmapsInitialTripIndex}
+        distMatrix={distMatrix}
       />
     </div>
   );
