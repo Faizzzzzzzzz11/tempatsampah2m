@@ -1,7 +1,8 @@
 import React from 'react';
-import { ListOrdered, Split, Eye, Play } from 'lucide-react';
-import { ExecutionResult, SystemConfig, Trip } from '../types';
+import { ListOrdered, Split, Eye, Play, Navigation, ExternalLink } from 'lucide-react';
+import { ExecutionResult, SystemConfig, Trip, Depot } from '../types';
 import { toRealKm, toTravelMinutes } from '../services/routingEngine';
+import { buildGoogleMapsTripRouteUrl } from '../services/googleMapsService';
 
 interface TripBreakdownCardProps {
   result: ExecutionResult;
@@ -12,6 +13,8 @@ interface TripBreakdownCardProps {
   onSelectTripFilter: (filter: 'all' | 'fixed' | number | string) => void;
   onPlaySpecificTripAnim: (tripIdx: number | string) => void;
   fixedTrip: Trip;
+  depot?: Depot;
+  onOpenGoogleMapsForTrip?: (tripIdx: number | string) => void;
 }
 
 const TRIP_COLORS = [
@@ -30,6 +33,8 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
   onSelectTripFilter,
   onPlaySpecificTripAnim,
   fixedTrip,
+  depot,
+  onOpenGoogleMapsForTrip,
 }) => {
   return (
     <div className="space-y-3.5 rounded-2xl border border-[#D9DFD7] bg-white p-4 shadow-sm dark:bg-[#121D22] dark:border-[#243741]">
@@ -139,7 +144,28 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {depot && (
+                      <a
+                        href={buildGoogleMapsTripRouteUrl(trip, depot)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
+                        title="Buka rute turn-by-turn langsung di Google Maps"
+                      >
+                        <Navigation className="h-3 w-3 fill-current" />
+                        <span>G-Maps</span>
+                      </a>
+                    )}
+                    {onOpenGoogleMapsForTrip && (
+                      <button
+                        onClick={() => onOpenGoogleMapsForTrip(trip.tripIndex as number)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-400/40 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300 transition cursor-pointer"
+                        title="Panduan detail navigasi turn-by-turn per titik singgah"
+                      >
+                        <span>🧭 Panduan</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => onSelectTripFilter(isIsolated ? 'all' : (trip.tripIndex as number))}
                       className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
@@ -192,78 +218,250 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
           })
         )}
 
-        {/* Conventional Benchmark Trip Card */}
+        {/* Conventional Benchmark Trip Cards (Adaptive: Displays both/all trips if multi-trip) */}
         {fixedTrip && (
-          <div
-            className={`rounded-xl border border-dashed p-3.5 transition shadow-2xs ${
-              selectedTripFilter === 'fixed'
-                ? 'border-2 border-slate-700 bg-slate-100 ring-2 ring-slate-300 dark:bg-slate-800 dark:border-slate-500'
-                : 'border-[#C4CEC2] bg-[#F8FAF6] hover:border-slate-400 dark:bg-[#17262D] dark:border-[#243741]'
-            }`}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D9DFD7] pb-2">
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between border-t border-dashed border-[#D9DFD7] pt-3 dark:border-[#243741]">
+              <div className="flex items-center gap-2">
                 <span className="rounded bg-slate-700 px-2 py-0.5 font-['Bricolage_Grotesque'] text-xs font-bold text-white">
-                  RUTE TETAP
+                  PEMBANDING
                 </span>
-                <span className="text-xs font-bold text-[#10303A]">
-                  Urutan Konvensional T1–T{fixedTrip.bins.length}, {fixedTrip.subTripCount} Trip (Kembali ke P saat Truk Penuh)
+                <span className="text-xs font-bold text-[#10303A] dark:text-white">
+                  Rute Tetap Konvensional ({fixedTrip.subTripCount} Trip · {fixedTrip.realRoadKm || toRealKm(fixedTrip.distance)} km)
                 </span>
-                {selectedTripFilter === 'fixed' && (
-                  <span className="animate-pulse rounded bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-white">
-                    SEDANG DILIHAT DI PETA
-                  </span>
-                )}
               </div>
-
-              <div className="flex items-center gap-2 text-xs">
-                <button
-                  onClick={() => onSelectTripFilter(selectedTripFilter === 'fixed' ? 'all' : 'fixed')}
-                  className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                    selectedTripFilter === 'fixed'
-                      ? 'border-[#10303A] bg-[#10303A] text-white'
-                      : 'border-[#C4CEC2] bg-white text-[#10303A] hover:bg-slate-100'
-                  }`}
-                >
-                  <Eye className="h-3 w-3" />
-                  <span>{selectedTripFilter === 'fixed' ? 'Tampilkan Rute Cerdas' : 'Lihat di Peta'}</span>
-                </button>
-                <button
-                  onClick={() => onPlaySpecificTripAnim('fixed')}
-                  className="inline-flex items-center gap-1 rounded-lg bg-slate-700 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-slate-800"
-                >
-                  <Play className="h-3 w-3 fill-current" />
-                  <span>Animasi Rute Tetap</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[#5B6A60]">
-              <span>
-                Total Jarak: <strong className="text-[#10303A]">{toRealKm(fixedTrip.distance)} km</strong>
-              </span>
-              <span>
-                Total Muatan: <strong className="text-blue-700">{fixedTrip.loadLiter} L total</strong>
-              </span>
-              <span>
-                Kapasitas: <strong className="text-emerald-700">Tiap sub-trip ≤ C ({config.C} L)</strong>
-              </span>
-            </div>
-
-            <div className="mt-2 space-y-1 text-[11px] font-mono text-[#5B6A60]">
-              {fixedTrip.subTrips?.map((s, i) => (
-                <div key={i}>
-                  Sub-Trip {i + 1}: {s.bins.length} tong ({s.bins[0]?.name}–{s.bins[s.bins.length - 1]?.name}) · {s.loadLiter} L · {toRealKm(s.distance)} km
+              {fixedTrip.subTrips && fixedTrip.subTrips.length > 1 && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <button
+                    onClick={() => onSelectTripFilter(selectedTripFilter === 'fixed' ? 'all' : 'fixed')}
+                    className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
+                      selectedTripFilter === 'fixed'
+                        ? 'border-slate-800 bg-slate-800 text-white shadow-2xs'
+                        : 'border-[#C4CEC2] bg-[#F5F7F3] text-[#10303A] hover:bg-slate-200 dark:bg-[#17262D] dark:border-[#243741] dark:text-white'
+                    }`}
+                  >
+                    <Eye className="h-3 w-3" />
+                    <span>{selectedTripFilter === 'fixed' ? 'Tampilkan Semua Rute' : 'Lihat Semua Tetap'}</span>
+                  </button>
+                  <button
+                    onClick={() => onPlaySpecificTripAnim('fixed')}
+                    className="inline-flex items-center gap-1 rounded-lg bg-slate-700 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-slate-800 cursor-pointer"
+                  >
+                    <Play className="h-3 w-3 fill-current" />
+                    <span>Animasi Semua</span>
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
 
-            <div className="mt-2 text-xs text-[#5B6A60]">
-              <div className="text-[11px] font-medium text-[#7D8B81]">Urutan Rute Tetap:</div>
-              <div className="mt-0.5 rounded-lg border border-[#D9DFD7] bg-white p-2 text-[11px] font-mono text-[#10303A] break-all">
-                {fixedTrip.tour.map(n => n.name || n.id).join(' → ')}
+            {/* If fixed route is split into multiple trips (e.g. 2 trips), adaptively render each trip card */}
+            {fixedTrip.subTrips && fixedTrip.subTrips.length > 1 ? (
+              fixedTrip.subTrips.map((st, i) => {
+                const subTripKey = `fixed-${st.subIndex || i + 1}`;
+                const isIsolated = selectedTripFilter === subTripKey;
+                const fillPct = ((st.loadLiter / config.C) * 100).toFixed(1);
+                const subTripObj: Trip = {
+                  tripIndex: subTripKey,
+                  isFixed: true,
+                  bins: st.bins,
+                  loadLiter: st.loadLiter,
+                  tour: st.tour || [depot!, ...st.bins, depot!],
+                  distance: st.distance,
+                  roadCoords: st.roadCoords,
+                  realRoadKm: st.realRoadKm,
+                };
+                const subKm = st.realRoadKm || toRealKm(st.distance);
+                const subMin = toTravelMinutes(st.distance, config);
+                const routeStr = subTripObj.tour.map(n => n.name || n.id).join(' → ');
+
+                return (
+                  <div
+                    key={subTripKey}
+                    className={`rounded-xl border border-dashed p-3.5 transition shadow-2xs ${
+                      isIsolated
+                        ? 'border-2 border-slate-700 bg-slate-100 ring-2 ring-slate-300 dark:bg-slate-800 dark:border-slate-500'
+                        : 'border-[#C4CEC2] bg-[#F8FAF6] hover:border-slate-400 dark:bg-[#17262D] dark:border-[#243741]'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D9DFD7] pb-2 dark:border-[#243741]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded bg-slate-700 px-2 py-0.5 font-['Bricolage_Grotesque'] text-xs font-bold text-white">
+                          RUTE TETAP #{st.subIndex || i + 1}
+                        </span>
+                        <span className="text-xs font-bold text-[#10303A] dark:text-white">
+                          {st.bins.length} Tong ({st.bins[0]?.name}–{st.bins[st.bins.length - 1]?.name})
+                        </span>
+                        <span className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.2 text-[10px] font-bold text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
+                          {fillPct}% Kapasitas
+                        </span>
+                        {isIsolated && (
+                          <span className="animate-pulse rounded bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                            SEDANG DILIHAT DI PETA
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        {depot && (
+                          <a
+                            href={buildGoogleMapsTripRouteUrl(subTripObj, depot)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
+                            title={`Buka rute tetap Trip ${st.subIndex || i + 1} langsung di Google Maps`}
+                          >
+                            <Navigation className="h-3 w-3 fill-current" />
+                            <span>G-Maps</span>
+                          </a>
+                        )}
+                        {onOpenGoogleMapsForTrip && (
+                          <button
+                            onClick={() => onOpenGoogleMapsForTrip(subTripKey)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#C4CEC2] bg-white px-2 py-1 text-xs font-bold text-[#10303A] hover:bg-slate-100 dark:bg-[#15242B] dark:border-[#243741] dark:text-white transition cursor-pointer"
+                            title="Panduan detail navigasi rute ini di Google Maps"
+                          >
+                            <span>🧭 Panduan</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onSelectTripFilter(isIsolated ? 'all' : subTripKey)}
+                          className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
+                            isIsolated
+                              ? 'border-[#10303A] bg-[#10303A] text-white'
+                              : 'border-[#C4CEC2] bg-white text-[#10303A] hover:bg-slate-100 dark:bg-[#15242B] dark:border-[#243741] dark:text-white'
+                          }`}
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span>{isIsolated ? 'Semua' : 'Fokus'}</span>
+                        </button>
+                        <button
+                          onClick={() => onPlaySpecificTripAnim(subTripKey)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-slate-700 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-slate-800 cursor-pointer"
+                        >
+                          <Play className="h-3 w-3 fill-current" />
+                          <span>Animasi</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[#5B6A60] dark:text-[#A3B9B1]">
+                      <span>
+                        Jarak Jalan Riil: <strong className="text-[#10303A] dark:text-white">{subKm} km</strong>
+                        <span className="ml-1 text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">(Sinkron Google Maps)</span>
+                      </span>
+                      <span>
+                        Waktu Tempuh: <strong className="text-[#10303A] dark:text-white">≈ {subMin} mnt</strong>
+                      </span>
+                      <span>
+                        Muatan: <strong className="text-blue-700 dark:text-blue-300">{st.loadLiter} L ({fillPct}%)</strong>
+                      </span>
+                      <span>
+                        Status:{' '}
+                        <strong className={st.loadLiter > config.C ? 'font-bold text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}>
+                          {st.loadLiter > config.C
+                            ? `Melebihi C (${config.C} L)!`
+                            : 'Aman (≤ C)'}
+                        </strong>
+                      </span>
+                    </div>
+
+                    <div className="mt-2 text-xs text-[#5B6A60] dark:text-[#A3B9B1]">
+                      <div className="text-[11px] font-medium text-[#7D8B81] dark:text-[#8FB0B4]">Urutan Rute Konvensional:</div>
+                      <div className="mt-0.5 rounded-lg border border-[#D9DFD7] bg-white p-2 text-[11px] font-mono text-[#10303A] break-all dark:bg-[#121D22] dark:border-[#243741] dark:text-white">
+                        {routeStr}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              /* Single Fixed Trip Card if only 1 trip needed */
+              <div
+                className={`rounded-xl border border-dashed p-3.5 transition shadow-2xs ${
+                  selectedTripFilter === 'fixed'
+                    ? 'border-2 border-slate-700 bg-slate-100 ring-2 ring-slate-300 dark:bg-slate-800 dark:border-slate-500'
+                    : 'border-[#C4CEC2] bg-[#F8FAF6] hover:border-slate-400 dark:bg-[#17262D] dark:border-[#243741]'
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D9DFD7] pb-2 dark:border-[#243741]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded bg-slate-700 px-2 py-0.5 font-['Bricolage_Grotesque'] text-xs font-bold text-white">
+                      RUTE TETAP
+                    </span>
+                    <span className="text-xs font-bold text-[#10303A] dark:text-white">
+                      Urutan Konvensional T1–T{fixedTrip.bins.length}
+                    </span>
+                    {selectedTripFilter === 'fixed' && (
+                      <span className="animate-pulse rounded bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                        SEDANG DILIHAT DI PETA
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {depot && (
+                      <a
+                        href={buildGoogleMapsTripRouteUrl(fixedTrip, depot)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
+                        title="Buka rute konvensional langsung di Google Maps"
+                      >
+                        <Navigation className="h-3 w-3 fill-current" />
+                        <span>G-Maps</span>
+                      </a>
+                    )}
+                    {onOpenGoogleMapsForTrip && (
+                      <button
+                        onClick={() => onOpenGoogleMapsForTrip('fixed')}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#C4CEC2] bg-white px-2 py-1 text-xs font-bold text-[#10303A] hover:bg-slate-100 dark:bg-[#15242B] dark:border-[#243741] dark:text-white transition cursor-pointer"
+                        title="Panduan detail navigasi rute tetap"
+                      >
+                        <span>🧭 Panduan</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onSelectTripFilter(selectedTripFilter === 'fixed' ? 'all' : 'fixed')}
+                      className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                        selectedTripFilter === 'fixed'
+                          ? 'border-[#10303A] bg-[#10303A] text-white'
+                          : 'border-[#C4CEC2] bg-white text-[#10303A] hover:bg-slate-100'
+                      }`}
+                    >
+                      <Eye className="h-3 w-3" />
+                      <span>{selectedTripFilter === 'fixed' ? 'Tampilkan Rute Cerdas' : 'Lihat di Peta'}</span>
+                    </button>
+                    <button
+                      onClick={() => onPlaySpecificTripAnim('fixed')}
+                      className="inline-flex items-center gap-1 rounded-lg bg-slate-700 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-slate-800"
+                    >
+                      <Play className="h-3 w-3 fill-current" />
+                      <span>Animasi Rute Tetap</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[#5B6A60] dark:text-[#A3B9B1]">
+                  <span>
+                    Jarak Jalan Riil: <strong className="text-[#10303A] dark:text-white">{fixedTrip.realRoadKm || toRealKm(fixedTrip.distance)} km</strong>
+                    <span className="ml-1 text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">(Sinkron Google Maps)</span>
+                  </span>
+                  <span>
+                    Total Muatan: <strong className="text-blue-700 dark:text-blue-300">{fixedTrip.loadLiter} L total</strong>
+                  </span>
+                  <span>
+                    Kapasitas: <strong className="text-emerald-700 dark:text-emerald-400">Muatan ≤ C ({config.C} L)</strong>
+                  </span>
+                </div>
+
+                <div className="mt-2 text-xs text-[#5B6A60] dark:text-[#A3B9B1]">
+                  <div className="text-[11px] font-medium text-[#7D8B81] dark:text-[#8FB0B4]">Urutan Rute Tetap:</div>
+                  <div className="mt-0.5 rounded-lg border border-[#D9DFD7] bg-white p-2 text-[11px] font-mono text-[#10303A] break-all dark:bg-[#121D22] dark:border-[#243741] dark:text-white">
+                    {fixedTrip.tour.map(n => n.name || n.id).join(' → ')}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

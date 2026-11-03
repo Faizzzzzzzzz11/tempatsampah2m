@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, useSyncExternalStore } from 'react';
 import { Crosshair, MapPin, Gauge, Warehouse, Inbox, Layers, ChevronDown, ChevronUp, RefreshCw, Info } from 'lucide-react';
 import { Header } from './components/Header';
 import { KpiStrip } from './components/KpiStrip';
@@ -16,6 +16,7 @@ import {
   TemplatesModal,
   ConfigModal,
 } from './components/Modals';
+import { GoogleMapsNavModal } from './components/GoogleMapsNavModal';
 import {
   Bin,
   Depot,
@@ -175,6 +176,13 @@ export default function App() {
   const [depotModalOpen, setDepotModalOpen] = useState(false);
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [gmapsModalOpen, setGmapsModalOpen] = useState(false);
+  const [gmapsInitialTripIndex, setGmapsInitialTripIndex] = useState<number | string | undefined>(undefined);
+
+  const handleOpenGoogleMaps = useCallback((tripIdx?: number | string) => {
+    setGmapsInitialTripIndex(tripIdx);
+    setGmapsModalOpen(true);
+  }, []);
 
   // Persist TPS State
   useEffect(() => {
@@ -226,18 +234,24 @@ export default function App() {
 
   // -------------------------------------------------------------
   // CALCULATIONS (ROUTING & CONVENTIONAL PLAN WITH SAME DISTANCE MATRIX)
+  // Reactive subscription to roadGeometryStore ensures distances sync with real OSRM / Google Maps driving distances
   // -------------------------------------------------------------
+  const roadGeomVersion = useSyncExternalStore(
+    roadGeometryStore.subscribe,
+    roadGeometryStore.getSnapshot
+  );
+
   const result: ExecutionResult = useMemo(() => {
     return runFlowchartLogic(bins, depot, config, manualSplitMode, distMatrix);
-  }, [bins, depot, config, manualSplitMode, distMatrix]);
+  }, [bins, depot, config, manualSplitMode, distMatrix, roadGeomVersion]);
 
   const convPlan = useMemo(() => {
     return conventionalPlan(bins, depot, config, distMatrix);
-  }, [bins, depot, config, distMatrix]);
+  }, [bins, depot, config, distMatrix, roadGeomVersion]);
 
   const fixedTrip = useMemo(() => {
     return getFixedTrip(bins, depot, config, distMatrix);
-  }, [bins, depot, config, distMatrix]);
+  }, [bins, depot, config, distMatrix, roadGeomVersion]);
 
   // Persist Map State with schema version
   useEffect(() => {
@@ -835,6 +849,7 @@ export default function App() {
         onSelectScenario={handleSelectScenario}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        onOpenGoogleMaps={() => handleOpenGoogleMaps()}
       />
 
       {/* Main Workspace */}
@@ -896,6 +911,9 @@ export default function App() {
               fixedTrip={fixedTrip}
               showFixedComparison={showFixedComparison}
               onToggleFixedComparison={() => setShowFixedComparison(prev => !prev)}
+              onOpenGoogleMapsModal={() =>
+                handleOpenGoogleMaps(selectedTripFilter !== 'all' ? selectedTripFilter : undefined)
+              }
             />
 
             {animRunning && (
@@ -920,6 +938,7 @@ export default function App() {
               onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
               showFixedComparison={showFixedComparison}
               onToggleFixedComparison={() => setShowFixedComparison(prev => !prev)}
+              onOpenGoogleMapsForTrip={handleOpenGoogleMaps}
             />
 
             <TripBreakdownCard
@@ -931,6 +950,8 @@ export default function App() {
               onSelectTripFilter={setSelectedTripFilter}
               onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
               fixedTrip={fixedTrip}
+              depot={depot}
+              onOpenGoogleMapsForTrip={handleOpenGoogleMaps}
             />
           </div>
 
@@ -965,6 +986,7 @@ export default function App() {
         <div className="hidden lg:block">
           <IncidentDesk
             reports={reports}
+            bins={bins}
             onTriggerDemoReport={handleTriggerDemoReport}
             onClearResolved={handleClearResolvedReports}
             onFocusBin={handleFocusBin}
@@ -1025,6 +1047,9 @@ export default function App() {
                 fixedTrip={fixedTrip}
                 showFixedComparison={showFixedComparison}
                 onToggleFixedComparison={() => setShowFixedComparison(prev => !prev)}
+                onOpenGoogleMapsModal={() =>
+                  handleOpenGoogleMaps(selectedTripFilter !== 'all' ? selectedTripFilter : undefined)
+                }
               />
 
               {animRunning && (
@@ -1054,6 +1079,7 @@ export default function App() {
                 onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
                 showFixedComparison={showFixedComparison}
                 onToggleFixedComparison={() => setShowFixedComparison(prev => !prev)}
+                onOpenGoogleMapsForTrip={handleOpenGoogleMaps}
               />
 
               <TripBreakdownCard
@@ -1065,6 +1091,8 @@ export default function App() {
                 onSelectTripFilter={setSelectedTripFilter}
                 onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
                 fixedTrip={fixedTrip}
+                depot={depot}
+                onOpenGoogleMapsForTrip={handleOpenGoogleMaps}
               />
             </div>
           )}
@@ -1102,6 +1130,7 @@ export default function App() {
             <div>
               <IncidentDesk
                 reports={reports}
+                bins={bins}
                 onTriggerDemoReport={handleTriggerDemoReport}
                 onClearResolved={handleClearResolvedReports}
                 onFocusBin={handleFocusBin}
@@ -1295,6 +1324,16 @@ export default function App() {
         isOpen={configModalOpen}
         onClose={() => setConfigModalOpen(false)}
         onSaveConfig={newCfg => setConfig(prev => ({ ...prev, ...newCfg }))}
+      />
+
+      <GoogleMapsNavModal
+        isOpen={gmapsModalOpen}
+        onClose={() => setGmapsModalOpen(false)}
+        result={result}
+        depot={depot}
+        config={config}
+        fixedTrip={fixedTrip}
+        initialTripIndex={gmapsInitialTripIndex}
       />
     </div>
   );

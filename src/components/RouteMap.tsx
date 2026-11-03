@@ -68,6 +68,7 @@ interface RouteMapProps {
   fixedTrip?: Trip;
   showFixedComparison?: boolean;
   onToggleFixedComparison?: () => void;
+  onOpenGoogleMapsModal?: () => void;
 }
 
 const TRIP_COLORS = [
@@ -258,6 +259,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   fixedTrip,
   showFixedComparison = false,
   onToggleFixedComparison,
+  onOpenGoogleMapsModal,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -572,7 +574,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     tripsToDisplay.forEach((trip, tripOrder) => {
       const isFixed = trip.isFixed;
       const tripColor = isFixed
-        ? { stroke: '#475569' }
+        ? { stroke: tripOrder === 0 ? '#334155' : tripOrder === 1 ? '#9A3412' : '#581C87' }
         : TRIP_COLORS[((typeof trip.tripIndex === 'number' ? trip.tripIndex : tripOrder + 1) - 1) % TRIP_COLORS.length];
       const tour = trip.tour || [];
       if (tour.length < 2) return;
@@ -595,7 +597,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       // Jika memakai jalur cadangan, gambar dengan garis putus-putus
       const inner = L.polyline(coords, {
         color: tripColor.stroke,
-        weight: isFixed ? 3.5 : 4.5,
+        weight: isFixed ? 4 : 4.5,
         opacity: 0.95,
         dashArray: isFixed ? '8, 8' : isFallback ? '6, 6' : undefined,
         lineCap: 'round',
@@ -608,8 +610,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         geom.status === 'loading'
           ? 'Memuat rute OSRM...'
           : geom.status === 'ok'
-          ? 'Jalan nyata (OSRM)'
-          : 'Perkiraan (OSRM gagal)';
+          ? 'Sinkron Jalan Nyata (OSRM/G-Maps)'
+          : 'Jaringan Jalan Nyata Godean';
 
       inner.bindTooltip(
         `${trip.isFixed ? trip.tripIndex : `Trip ${trip.tripIndex}`}: ${tripKm} km (≈ ${tripMin} mnt) · ${statusLabel}`,
@@ -966,7 +968,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       <div style="font-size:11px;color:#64748b;margin-top:2px;">📍 ${depot.location || 'Kapanewon Godean'}</div>
       <div style="font-size:11px;color:#0F6B73;font-weight:bold;margin-top:4px;">Pusat Armada &amp; Penampungan TPS 3R</div>
       <div style="font-size:10px;color:#10b981;font-weight:bold;margin-top:2px;">✅ Akses Jalan Arteri Godean Bebas Hambatan (≥ 5.5m)</div>
-      <button id="btnOpenDepotModalRoute" style="width:100%;margin-top:8px;padding:6px;font-size:11px;background:#1D4ED8;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">🏭 Atur / Pindah Pangkalan</button>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${depot.lat},${depot.lng}&travelmode=driving" target="_blank" rel="noopener noreferrer" style="width:100%;margin-top:6px;padding:6px;font-size:11px;background:#2563EB;color:white;border:none;border-radius:6px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:bold;cursor:pointer;">
+        <span>🗺️ Rute Pangkalan di Google Maps</span>
+      </a>
+      <button id="btnOpenDepotModalRoute" style="width:100%;margin-top:6px;padding:6px;font-size:11px;background:#1D4ED8;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">🏭 Atur / Pindah Pangkalan</button>
     `;
     depotPopupContent.querySelector('#btnOpenDepotModalRoute')?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1054,6 +1059,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           <button id="routeEditBtn-${b.id}" style="flex:1;padding:6px;font-size:11px;background:#0F6B73;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">✏️ Edit</button>
           <button id="routeDelBtn-${b.id}" style="flex:1;padding:6px;font-size:11px;background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA;border-radius:6px;cursor:pointer;font-weight:bold;">🗑️ Hapus</button>
         </div>
+
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${pos[0]},${pos[1]}&travelmode=driving" target="_blank" rel="noopener noreferrer" style="width:100%;margin-bottom:6px;padding:6px;font-size:11px;background:#2563EB;color:white;border:none;border-radius:6px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:bold;cursor:pointer;">
+          <span>🗺️ Navigasi Google Maps</span>
+        </a>
 
         <button id="routeRepBtn-${b.id}" style="width:100%;padding:6px;font-size:11px;background:#DC2626;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:4px;">
           <span>🚨 Lapor Darurat / Meluap</span>
@@ -1214,6 +1223,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               {showRoutes ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">{showRoutes ? 'Rute On' : 'Rute Off'}</span>
             </button>
+
+            {/* Google Maps Route Modal */}
+            {onOpenGoogleMapsModal && (
+              <button
+                onClick={onOpenGoogleMapsModal}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 transition cursor-pointer"
+                title="Buka navigasi rute lengkap di Google Maps"
+              >
+                <Navigation className="h-3.5 w-3.5 fill-current" />
+                <span className="hidden sm:inline">G-Maps</span>
+              </button>
+            )}
 
             {/* Satelit / Jalan Switcher */}
             <div className="inline-flex rounded-lg border border-[#D9DFD7] bg-[#F5F7F3] p-0.5 dark:bg-[#17262D] dark:border-[#243741]">

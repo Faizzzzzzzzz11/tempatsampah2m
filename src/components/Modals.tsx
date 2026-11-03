@@ -182,6 +182,23 @@ export const EditBinModal: React.FC<EditBinModalProps> = ({
             />
           </div>
 
+          {/* Koordinat GPS & Link Google Maps */}
+          <div className="flex items-center justify-between rounded-xl border border-[#D9DFD7] bg-[#F8FAF6] p-2.5 text-[11px] text-[#5B6A60] dark:bg-[#17262D] dark:border-[#243741] dark:text-[#A3B9B1]">
+            <div>
+              <span className="font-semibold block text-[#10303A] dark:text-white">Koordinat GPS:</span>
+              <span>{bin.lat.toFixed(5)}, {bin.lng.toFixed(5)}</span>
+            </div>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${bin.lat},${bin.lng}&travelmode=driving`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 transition"
+              title="Buka rute navigasi ke tong ini di Google Maps"
+            >
+              <span>🗺️ Google Maps</span>
+            </a>
+          </div>
+
           {/* Toggle Tanpa Data */}
           <div className="space-y-1.5 rounded-lg border border-[#D9DFD7] bg-[#F8FAF6] p-2.5">
             <label className="flex cursor-pointer items-center gap-2 font-medium text-[#10303A]">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Sliders, Play, AlertTriangle, X, Radio, Sun, Moon } from 'lucide-react';
+import { Truck, Sliders, Play, AlertTriangle, X, Radio, Sun, Moon, Navigation } from 'lucide-react';
 import { CitizenReport } from '../types';
 
 interface HeaderProps {
@@ -13,6 +13,7 @@ interface HeaderProps {
   onSelectScenario: (scenario: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onOpenGoogleMaps?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectScenario,
   theme,
   onToggleTheme,
+  onOpenGoogleMaps,
 }) => {
   return (
     <>
@@ -92,6 +94,19 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Sliders className="h-4 w-4" />
             </button>
+
+            {/* Google Maps Direct Navigation */}
+            {onOpenGoogleMaps && (
+              <button
+                onClick={onOpenGoogleMaps}
+                aria-label="Buka Navigasi Rute Langsung ke Google Maps"
+                title="Buka Navigasi Rute Langsung ke Google Maps"
+                className="inline-flex items-center gap-1 rounded-lg border border-blue-400/40 bg-blue-600/30 hover:bg-blue-600 px-2.5 py-1 text-xs font-bold text-white transition cursor-pointer focus:outline-none"
+              >
+                <Navigation className="h-3.5 w-3.5 fill-current text-blue-300" />
+                <span className="hidden md:inline">G-Maps</span>
+              </button>
+            )}
 
             {/* Hitung Rute */}
             <button

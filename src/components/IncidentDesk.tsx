@@ -1,9 +1,11 @@
 import React from 'react';
-import { Inbox, PlusCircle, CheckCheck } from 'lucide-react';
-import { CitizenReport } from '../types';
+import { Inbox, PlusCircle, CheckCheck, Navigation } from 'lucide-react';
+import { CitizenReport, Bin } from '../types';
+import { buildGoogleMapsNavUrl } from '../services/googleMapsService';
 
 interface IncidentDeskProps {
   reports: CitizenReport[];
+  bins?: Bin[];
   onTriggerDemoReport: () => void;
   onClearResolved: () => void;
   onFocusBin: (binId: number) => void;
@@ -12,6 +14,7 @@ interface IncidentDeskProps {
 
 export const IncidentDesk: React.FC<IncidentDeskProps> = ({
   reports,
+  bins = [],
   onTriggerDemoReport,
   onClearResolved,
   onFocusBin,
@@ -113,7 +116,23 @@ export const IncidentDesk: React.FC<IncidentDeskProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-black/5 dark:border-white/5">
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-black/5 dark:border-white/5">
+                {(() => {
+                  const targetBin = bins.find(b => b.id === r.binId);
+                  if (!targetBin) return null;
+                  return (
+                    <a
+                      href={buildGoogleMapsNavUrl(targetBin.lat, targetBin.lng)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-blue-700"
+                      title="Buka rute navigasi darurat ke bak sampah ini di Google Maps"
+                    >
+                      <Navigation className="h-3 w-3 fill-current" />
+                      <span>G-Maps</span>
+                    </a>
+                  );
+                })()}
                 <button
                   onClick={() => onFocusBin(r.binId)}
                   className="rounded-lg border border-[#C4CEC2] bg-[#F5F7F3] px-3 py-1.5 text-xs font-bold text-[#10303A] transition hover:bg-slate-200 dark:bg-[#17262D] dark:border-[#243741] dark:text-white cursor-pointer"
@@ -186,6 +205,22 @@ export const IncidentDesk: React.FC<IncidentDeskProps> = ({
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-right">
+                    {(() => {
+                      const targetBin = bins.find(b => b.id === r.binId);
+                      if (!targetBin) return null;
+                      return (
+                        <a
+                          href={buildGoogleMapsNavUrl(targetBin.lat, targetBin.lng)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mr-1.5 inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-2xs transition hover:bg-blue-700"
+                          title="Buka rute navigasi darurat ke bak sampah ini di Google Maps"
+                        >
+                          <Navigation className="h-3 w-3 fill-current" />
+                          <span>G-Maps</span>
+                        </a>
+                      );
+                    })()}
                     <button
                       onClick={() => onFocusBin(r.binId)}
                       className="mr-1.5 rounded-md bg-[#F5F7F3] px-2.5 py-1 text-[11px] font-bold text-[#10303A] transition hover:bg-slate-200 dark:bg-[#17262D] dark:text-white cursor-pointer"

@@ -10,6 +10,7 @@ import {
 import {
   DistanceMatrixResult,
   DistanceFn,
+  haversineDistance,
   haversineRoadDistance,
   HAVERSINE_ROAD_FACTOR,
 } from './distanceMatrix';
@@ -146,6 +147,19 @@ export function calculateTourDistance(
     dist += D(tour[i], tour[i + 1]);
   }
   return Math.round(dist * 100) / 100;
+}
+
+/**
+ * Calculates exact real road distance along a polyline coordinate array using Haversine formula.
+ * Synchronized with true GIS road centerlines (same as Google Maps & OSRM driving distances).
+ */
+export function calculatePolylineDistanceKm(coords: [number, number][]): number {
+  if (!coords || coords.length < 2) return 0;
+  let total = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    total += haversineDistance(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
+  }
+  return Math.round(total * 10) / 10;
 }
 
 export function getMinDistToTourPath(
@@ -613,8 +627,9 @@ export function buildTripsFromGroups(
         const distance = calculateTourDistance(tour, cfg, D);
         if (distance < t.distance) t = { tour, distance };
       }
+      const orderedBins = t.tour.filter(pt => typeof pt.id === 'number') as Bin[];
       return {
-        bins: g,
+        bins: orderedBins.length === g.length ? orderedBins : g,
         loadLiter: g.reduce((s, b) => s + litersOf(b, cfg), 0),
         tour: t.tour,
         distance: t.distance,
@@ -907,9 +922,10 @@ export function runFlowchartLogic(
         .map((tb, idx) => {
           const tourRes = findShortestTourForBins(tb, depot, cfg, EXACT_TSP_LIMIT, D);
           const loadSum = tb.reduce((sum, b) => sum + litersOf(b, cfg), 0);
+          const orderedBins = tourRes.tour.filter(pt => typeof pt.id === 'number') as Bin[];
           return {
             tripIndex: idx + 1,
-            bins: tb,
+            bins: orderedBins.length === tb.length ? orderedBins : tb,
             loadLiter: loadSum,
             tour: tourRes.tour,
             distance: tourRes.distance,
@@ -996,11 +1012,25 @@ export function runFlowchartLogic(
     }
   }
 
-  // Link authentic road coordinates for each trip from the central road geometry store
+  // Link authentic road coordinates and synchronize exact road distances from the central road geometry store
   finalTrips.forEach(trip => {
+    // Strictly synchronize trip.bins order with trip.tour sequence
+    if (trip.tour && trip.tour.length > 2) {
+      const tourBins = trip.tour.filter(pt => typeof pt.id === 'number') as Bin[];
+      if (tourBins.length === trip.bins.length) {
+        trip.bins = tourBins;
+      }
+    }
     const geom = roadGeometryStore.getTourGeometry(trip.tour, true);
     trip.roadCoords = geom.coords;
-    if (geom.realDistanceKm) trip.realRoadKm = geom.realDistanceKm;
+    if (geom.realDistanceKm) {
+      trip.realRoadKm = geom.realDistanceKm;
+    } else if (geom.coords && geom.coords.length > 1) {
+      const roadKm = calculatePolylineDistanceKm(geom.coords);
+      trip.realRoadKm = roadKm.toFixed(1);
+    } else {
+      trip.realRoadKm = toRealKm(trip.distance);
+    }
   });
 
   const trulyAcceptedYellow = acceptedYellow.filter(yb => yb.isAccepted);
@@ -1082,14 +1112,22 @@ export function getFixedTrip(
   const subTrips = groups.map((g, idx) => {
     const subTour: (Bin | Depot)[] = [depot, ...g, depot];
     const subGeom = roadGeometryStore.getTourGeometry(subTour, true);
+    // Matrix distance using D (critical so custom distance functions/matrices are evaluated)
+    const subDist = calculateTourDistance(subTour, cfg, D);
+    const realKm =
+      subGeom.realDistanceKm ||
+      (subGeom.coords && subGeom.coords.length > 1
+        ? calculatePolylineDistanceKm(subGeom.coords).toFixed(1)
+        : toRealKm(subDist));
+
     return {
       subIndex: idx + 1,
       bins: g,
       tour: subTour,
       loadLiter: g.reduce((sum, b) => sum + litersOf(b, cfg), 0),
-      distance: calculateTourDistance(subTour, cfg, D),
+      distance: subDist,
       roadCoords: subGeom.coords,
-      realRoadKm: subGeom.realDistanceKm || toRealKm(calculateTourDistance(subTour, cfg, D)),
+      realRoadKm: realKm,
     };
   });
 
@@ -1102,13 +1140,15 @@ export function getFixedTrip(
   });
 
   const resolvedRoadCoords =
-    tourGeom.coords && tourGeom.coords.length > 1
-      ? tourGeom.coords
-      : combinedSubCoords.length > 1
+    combinedSubCoords.length > 1
       ? combinedSubCoords
+      : tourGeom.coords && tourGeom.coords.length > 1
+      ? tourGeom.coords
       : tourGeom.coords;
 
-  const totalDist = calculateTourDistance(tour, cfg, D);
+  // Total distance for fixed route is the exact sum of its sub-trips returning to the depot
+  const totalDist = subTrips.reduce((sum, st) => sum + st.distance, 0);
+  const totalRealKm = subTrips.reduce((sum, st) => sum + (parseFloat(st.realRoadKm || '0') || st.distance), 0);
 
   const trip: Trip = {
     tripIndex: 'fixed',
@@ -1116,11 +1156,11 @@ export function getFixedTrip(
     bins: groups.flat(),
     loadLiter: subTrips.reduce((sum, t) => sum + t.loadLiter, 0),
     tour,
-    distance: totalDist,
+    distance: Math.round(totalDist * 100) / 100,
     subTrips,
     subTripCount: groups.length,
     roadCoords: resolvedRoadCoords,
-    realRoadKm: tourGeom.realDistanceKm || toRealKm(totalDist),
+    realRoadKm: (Math.round(totalRealKm * 10) / 10).toFixed(1),
   };
   return trip;
 }

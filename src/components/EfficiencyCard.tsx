@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gauge, Eye, Play, Layers, ChevronDown, ChevronUp, Route, CheckCircle2 } from 'lucide-react';
+import { Gauge, Eye, Play, Layers, ChevronDown, ChevronUp, Route, CheckCircle2, MapPin } from 'lucide-react';
 import { ExecutionResult, SystemConfig, Trip } from '../types';
 import { toRealKm } from '../services/routingEngine';
 
@@ -14,6 +14,7 @@ interface EfficiencyCardProps {
   onPlaySpecificTripAnim?: (tripIdx: number | 'fixed') => void;
   showFixedComparison?: boolean;
   onToggleFixedComparison?: () => void;
+  onOpenGoogleMapsForTrip?: (tripIdx: number | string) => void;
 }
 
 export const EfficiencyCard: React.FC<EfficiencyCardProps> = ({
@@ -27,6 +28,7 @@ export const EfficiencyCard: React.FC<EfficiencyCardProps> = ({
   onPlaySpecificTripAnim,
   showFixedComparison = false,
   onToggleFixedComparison,
+  onOpenGoogleMapsForTrip,
 }) => {
   const [showSubTripsDetail, setShowSubTripsDetail] = useState(false);
 
@@ -258,14 +260,26 @@ export const EfficiencyCard: React.FC<EfficiencyCardProps> = ({
                         <span>Muatan: {st.loadLiter} L</span>
                         <span>Jarak: {st.realRoadKm || toRealKm(st.distance)} km</span>
                       </div>
-                      {onSelectTripFilter && (
-                        <button
-                          onClick={() => onSelectTripFilter(`fixed-${sIdx + 1}`)}
-                          className="mt-2 w-full rounded border border-[#C4CEC2] bg-[#F8FAF6] py-1 text-[10px] font-bold text-[#10303A] hover:bg-slate-200 cursor-pointer dark:bg-[#17262D] dark:border-[#243741] dark:text-white"
-                        >
-                          Fokus Sub-Trip #{sIdx + 1} di Peta
-                        </button>
-                      )}
+                      <div className="mt-2 flex items-center gap-1.5">
+                        {onSelectTripFilter && (
+                          <button
+                            onClick={() => onSelectTripFilter(`fixed-${sIdx + 1}`)}
+                            className="flex-1 rounded border border-[#C4CEC2] bg-[#F8FAF6] py-1 text-[10px] font-bold text-[#10303A] hover:bg-slate-200 cursor-pointer dark:bg-[#17262D] dark:border-[#243741] dark:text-white"
+                          >
+                            Fokus di Peta
+                          </button>
+                        )}
+                        {onOpenGoogleMapsForTrip && (
+                          <button
+                            onClick={() => onOpenGoogleMapsForTrip(`fixed-${sIdx + 1}`)}
+                            className="inline-flex items-center justify-center gap-1 rounded bg-[#1A73E8] px-2 py-1 text-[10px] font-bold text-white hover:bg-[#1557B0] transition cursor-pointer shadow-2xs"
+                            title={`Navigasi Google Maps untuk Sub-Trip Tetap #${sIdx + 1}`}
+                          >
+                            <MapPin className="h-3 w-3" />
+                            <span>G-Maps</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
