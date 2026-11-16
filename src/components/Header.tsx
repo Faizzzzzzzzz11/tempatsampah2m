@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Sliders, Play, AlertTriangle, X, Radio, Sun, Moon, Navigation, Download } from 'lucide-react';
+import { Truck, Sliders, Play, AlertTriangle, X, Radio, Sun, Moon, Navigation } from 'lucide-react';
 import { CitizenReport } from '../types';
 
 interface HeaderProps {
@@ -29,24 +29,6 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   onOpenGoogleMaps,
 }) => {
-  const handleDownloadStandaloneHtml = async () => {
-    try {
-      const resp = await fetch('/index.html');
-      const text = await resp.text();
-      const blob = new Blob([text], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'TrashRoute_Godean_Standalone.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      window.open('/index.html', '_blank');
-    }
-  };
-
   return (
     <>
       <header className="sticky top-0 z-40 bg-[#10303A] text-white shadow-xs">
@@ -125,17 +107,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="hidden md:inline">G-Maps</span>
               </button>
             )}
-
-            {/* Download Standalone Single File index.html */}
-            <button
-              onClick={handleDownloadStandaloneHtml}
-              aria-label="Unduh Berkas 1 File HTML Tunggal (Bisa Dibuka Langsung Offline)"
-              title="Unduh Berkas 1 File HTML Tunggal (Bisa Langsung Dibuka Offline Tanpa Server)"
-              className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/40 bg-emerald-600/30 hover:bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white transition cursor-pointer focus:outline-none"
-            >
-              <Download className="h-3.5 w-3.5 text-emerald-300" />
-              <span className="hidden md:inline text-[11px]">Unduh HTML</span>
-            </button>
 
             {/* Hitung Rute */}
             <button

@@ -493,7 +493,7 @@ export const GoogleMapsNavModal: React.FC<GoogleMapsNavModalProps> = ({
         {/* Modal Footer */}
         <div className="flex items-center justify-between border-t border-[#E5E9E2] bg-[#F8FAF6] px-5 py-3 dark:bg-[#15242B] dark:border-[#243741]">
           <span className="text-[11px] text-[#7D8B81] dark:text-[#8FB0B4]">
-            Kompatibel dengan Google Maps Android, iOS &amp; Desktop Browser
+            Kompatibel dengan Google Maps Web Browser
           </span>
           <button
             onClick={onClose}

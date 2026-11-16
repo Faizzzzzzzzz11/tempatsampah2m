@@ -7,7 +7,6 @@ import {
   RotateCcw,
   PlusCircle,
   Building2,
-  LayoutGrid,
   Move,
   Maximize2,
   Minimize2,
@@ -51,7 +50,6 @@ interface RouteMapProps {
   onToggleEditMode: () => void;
   onOpenAddBin: () => void;
   onOpenDepotModal: () => void;
-  onOpenTemplatesModal: () => void;
   onResetMap: () => void;
   animRunning: boolean;
   animSpeed: number;
@@ -242,7 +240,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   onToggleEditMode,
   onOpenAddBin,
   onOpenDepotModal,
-  onOpenTemplatesModal,
   onResetMap,
   animRunning,
   animSpeed,
@@ -286,7 +283,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const [tracingMessage, setTracingMessage] = useState<string>('');
   const [viewMode, setViewMode] = useState<'real' | 'satellite'>('real');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(14);
+  const [zoomLevel, setZoomLevel] = useState(16);
   const [followTruck, setFollowTruck] = useState(false);
 
   const handleToggleFollowTruck = useCallback(() => {
@@ -306,7 +303,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
     const map = L.map(mapContainerRef.current, {
       center: [-7.7682, 110.2938],
-      zoom: 14,
+      zoom: 16,
       zoomControl: false,
       scrollWheelZoom: true,
     });
@@ -1174,7 +1171,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     const latlngs = bins.map(b => getBinLatLng(b));
     latlngs.push(getBinLatLng(depot));
     const bounds = L.latLngBounds(latlngs);
-    map.fitBounds(bounds, { padding: [35, 35], maxZoom: 15 });
+    map.fitBounds(bounds, { padding: [35, 35], maxZoom: 16 });
   };
 
   return (
@@ -1269,7 +1266,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                   ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                   : 'border-[#D9DFD7] bg-[#F5F7F3] text-[#46554B] dark:bg-[#17262D] dark:border-[#243741] dark:text-[#A3B9B1] hover:bg-slate-200 dark:hover:bg-[#20333D]'
               }`}
-              title="Buka / tutup alat pengelolaan tong, pangkalan, dan template"
+              title="Buka / tutup alat pengelolaan tong dan pangkalan"
             >
               <Wrench className="h-3.5 w-3.5" />
               <span>{showMapTools ? 'Tutup Alat' : 'Alat'}</span>
@@ -1304,14 +1301,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               >
                 <Building2 className="h-3.5 w-3.5" />
                 <span>🏭 Pangkalan</span>
-              </button>
-
-              <button
-                onClick={onOpenTemplatesModal}
-                className="inline-flex items-center gap-1 rounded-lg border border-[#C4CEC2] bg-white px-2.5 py-1 text-xs font-semibold text-[#10303A] hover:bg-slate-100 dark:bg-[#17262D] dark:border-[#243741] dark:text-white cursor-pointer"
-              >
-                <LayoutGrid className="h-3.5 w-3.5 text-purple-600" />
-                <span>Template</span>
               </button>
 
               <button

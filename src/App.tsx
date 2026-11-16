@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, useSyncExternalStore } from 'react';
-import { Crosshair, MapPin, Gauge, Warehouse, Inbox, Layers, ChevronDown, ChevronUp, RefreshCw, Info } from 'lucide-react';
+import { Crosshair } from 'lucide-react';
 import { Header } from './components/Header';
 import { KpiStrip } from './components/KpiStrip';
 import { RouteMap } from './components/RouteMap';
@@ -13,7 +13,6 @@ import {
   EditBinModal,
   AddBinModal,
   DepotModal,
-  TemplatesModal,
   ConfigModal,
 } from './components/Modals';
 import { GoogleMapsNavModal } from './components/GoogleMapsNavModal';
@@ -50,7 +49,7 @@ import {
 } from './services/distanceMatrix';
 import { RealtimeSyncManager, playAlertChime } from './services/realtimeSync';
 
-const MAP_STORAGE_KEY = 'trashroute_map_v2';
+const MAP_STORAGE_KEY = 'trashroute_map_v5';
 const THEME_STORAGE_KEY = 'trashroute_theme';
 const TPS_CONFIG_STORAGE_KEY = 'trashroute_tps_config';
 const TPS_COMPLETED_STORAGE_KEY = 'trashroute_tps_completed';
@@ -122,8 +121,6 @@ export default function App() {
   const [mapPickMode, setMapPickMode] = useState<'bin' | 'depot' | null>(null);
   const [addBinCoords, setAddBinCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Mobile Tab Navigation State
-  const [activeMobileTab, setActiveMobileTab] = useState<'map' | 'efficiency' | 'tps' | 'reports' | 'all'>('map');
   const [showMatrixDetail, setShowMatrixDetail] = useState(false);
 
   // Reports State
@@ -174,7 +171,6 @@ export default function App() {
   const [editingBinId, setEditingBinId] = useState<number | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [depotModalOpen, setDepotModalOpen] = useState(false);
-  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [gmapsModalOpen, setGmapsModalOpen] = useState(false);
   const [gmapsInitialTripIndex, setGmapsInitialTripIndex] = useState<number | string | undefined>(undefined);
@@ -641,73 +637,6 @@ export default function App() {
     }));
   };
 
-  const handleApplyTemplate = (templateKey: string) => {
-    setTemplatesModalOpen(false);
-    if (templateKey === 'default24') {
-      try {
-        localStorage.removeItem(MAP_STORAGE_KEY);
-      } catch {}
-      setDepot(DEFAULT_DEPOT);
-      setBins(DEFAULT_BINS_24);
-      handleSelectScenario('sedikit');
-      return;
-    }
-
-    if (templateKey === 'grid4x4') {
-      const newBins: Bin[] = [];
-      let id = 1;
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
-          const lat = -7.758 - r * 0.008;
-          const lng = 110.279 + c * 0.013;
-          newBins.push({
-            id: id++,
-            name: `Tong ${id - 1}`,
-            location: '',
-            lat: Math.round(lat * 100000) / 100000,
-            lng: Math.round(lng * 100000) / 100000,
-            fill: (id * 17) % 85 + 15,
-          });
-        }
-      }
-      setBins(newBins);
-    } else if (templateKey === 'corridor') {
-      const corridorBins: Bin[] = [
-        { id: 1, name: 'Tong 1', location: '', lat: -7.7738, lng: 110.332, fill: 30 },
-        { id: 2, name: 'Tong 2', location: '', lat: -7.7705, lng: 110.328, fill: 75 },
-        { id: 3, name: 'Tong 3', location: '', lat: -7.7688, lng: 110.318, fill: 88 },
-        { id: 4, name: 'Tong 4', location: '', lat: -7.769, lng: 110.308, fill: 45 },
-        { id: 5, name: 'Tong 5', location: '', lat: -7.768, lng: 110.298, fill: 91 },
-        { id: 6, name: 'Tong 6', location: '', lat: -7.7675, lng: 110.2925, fill: 85 },
-        { id: 7, name: 'Tong 7', location: '', lat: -7.7695, lng: 110.2915, fill: 65 },
-        { id: 8, name: 'Tong 8', location: '', lat: -7.771, lng: 110.295, fill: 40 },
-        { id: 9, name: 'Tong 9', location: '', lat: -7.7722, lng: 110.285, fill: 82 },
-        { id: 10, name: 'Tong 10', location: '', lat: -7.761, lng: 110.295, fill: 78 },
-        { id: 11, name: 'Tong 11', location: '', lat: -7.75, lng: 110.316, fill: 84 },
-        { id: 12, name: 'Tong 12', location: '', lat: -7.754, lng: 110.296, fill: 90 },
-      ];
-      setBins(corridorBins);
-    } else if (templateKey === 'clusters') {
-      const clusterBins: Bin[] = [
-        { id: 1, name: 'Tong 1', location: '', lat: -7.755, lng: 110.312, fill: 60 },
-        { id: 2, name: 'Tong 2', location: '', lat: -7.752, lng: 110.316, fill: 42 },
-        { id: 3, name: 'Tong 3', location: '', lat: -7.759, lng: 110.308, fill: 78 },
-        { id: 4, name: 'Tong 4', location: '', lat: -7.7675, lng: 110.2925, fill: 90 },
-        { id: 5, name: 'Tong 5', location: '', lat: -7.7682, lng: 110.2938, fill: 55 },
-        { id: 6, name: 'Tong 6', location: '', lat: -7.7695, lng: 110.2915, fill: 72 },
-        { id: 7, name: 'Tong 7', location: '', lat: -7.778, lng: 110.318, fill: 25 },
-        { id: 8, name: 'Tong 8', location: '', lat: -7.775, lng: 110.315, fill: 92 },
-        { id: 9, name: 'Tong 9', location: '', lat: -7.781, lng: 110.32, fill: 70 },
-        { id: 10, name: 'Tong 10', location: '', lat: -7.764, lng: 110.304, fill: 82 },
-        { id: 11, name: 'Tong 11', location: '', lat: -7.765, lng: 110.296, fill: 30 },
-        { id: 12, name: 'Tong 12', location: '', lat: -7.761, lng: 110.278, fill: 86 },
-        { id: 13, name: 'Tong 13', location: '', lat: -7.758, lng: 110.282, fill: 40 },
-        { id: 14, name: 'Tong 14', location: '', lat: -7.759, lng: 110.286, fill: 77 },
-      ];
-      setBins(clusterBins);
-    }
-  };
-
   const handleResetMap = () => {
     try {
       localStorage.removeItem(MAP_STORAGE_KEY);
@@ -833,7 +762,6 @@ export default function App() {
   }, []);
 
   const editingBin = bins.find(b => b.id === editingBinId) || null;
-  const pendingReportCount = useMemo(() => reports.filter(r => r.status === 'pending').length, [reports]);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#EEF1EC] text-[#10303A] font-['Public_Sans'] dark:bg-[#0B1317] dark:text-[#F3F7F5]">
@@ -853,16 +781,14 @@ export default function App() {
       />
 
       {/* Main Workspace */}
-      <main className="mx-auto flex-1 w-full max-w-7xl space-y-4 sm:space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-24 lg:pb-8">
+      <main className="mx-auto flex-1 w-full max-w-7xl space-y-4 sm:space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-8">
         {/* Top KPI Cards */}
         <KpiStrip bins={bins} result={result} config={config} />
 
-
-
         {/* ======================================================== */}
-        {/* DESKTOP LAYOUT (2 Columns, Always Expanded on lg+) */}
+        {/* WORKSPACE LAYOUT (2 Columns on lg+) */}
         {/* ======================================================== */}
-        <div className="hidden lg:grid grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (8 Cols): Unified Map & Route Analytics */}
           <div className="space-y-5 lg:col-span-8">
             <RouteMap
@@ -895,7 +821,6 @@ export default function App() {
               }}
               onStartPickBinOnMap={handleStartPickBinOnMap}
               onOpenDepotModal={() => setDepotModalOpen(true)}
-              onOpenTemplatesModal={() => setTemplatesModalOpen(true)}
               onResetMap={handleResetMap}
               animRunning={animRunning}
               animSpeed={animSpeed}
@@ -982,8 +907,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Desktop Bottom Section: Incident Desk */}
-        <div className="hidden lg:block">
+        {/* Bottom Section: Incident Desk */}
+        <div>
           <IncidentDesk
             reports={reports}
             bins={bins}
@@ -993,241 +918,7 @@ export default function App() {
             onResolveReport={handleResolveReport}
           />
         </div>
-
-        {/* ======================================================== */}
-        {/* MOBILE VIEW (Tab-Switchable, Clean & Comfortable on Phones) */}
-        {/* ======================================================== */}
-        <div className="lg:hidden space-y-4">
-          {/* Tab 1: Peta & Live Telemetry */}
-          {(activeMobileTab === 'map' || activeMobileTab === 'all') && (
-            <div className="space-y-3">
-              <RouteMap
-                bins={bins}
-                depot={depot}
-                config={config}
-                result={result}
-                selectedTripFilter={selectedTripFilter}
-                onSelectTripFilter={setSelectedTripFilter}
-                onEditBin={handleOpenBinModal}
-                onDeleteBin={handleDeleteBin}
-                onQuickFillChange={handleQuickFillChange}
-                onTriggerReport={binId => {
-                  const target = bins.find(b => b.id === binId);
-                  if (target) {
-                    handleUserCitizenReport(
-                      binId,
-                      'Sampah Meluap (Penuh Sesak)',
-                      'Aduan darurat dikirim via marker peta.'
-                    );
-                  }
-                }}
-                onUpdateBinPosition={handleUpdateBinPosition}
-                onUpdateDepotPosition={handleUpdateDepotPosition}
-                editMode={editMode}
-                onToggleEditMode={() => setEditMode(!editMode)}
-                onOpenAddBin={() => {
-                  setAddBinCoords(null);
-                  setAddModalOpen(true);
-                }}
-                onStartPickBinOnMap={handleStartPickBinOnMap}
-                onOpenDepotModal={() => setDepotModalOpen(true)}
-                onOpenTemplatesModal={() => setTemplatesModalOpen(true)}
-                onResetMap={handleResetMap}
-                animRunning={animRunning}
-                animSpeed={animSpeed}
-                onToggleAnimation={handleToggleAnimation}
-                onResetAnimation={handleResetAnimation}
-                onChangeAnimSpeed={setAnimSpeed}
-                currentTruckWaypoint={animWaypoint}
-                currentTruckLoad={currentTruckLoad}
-                mapPickMode={mapPickMode}
-                onMapClickCoord={handleMapClickCoord}
-                onRefreshRoadGeometries={handleRefreshRoadGeometries}
-                theme={theme}
-                fixedTrip={fixedTrip}
-                showFixedComparison={showFixedComparison}
-                onToggleFixedComparison={() => setShowFixedComparison(prev => !prev)}
-                onOpenGoogleMapsModal={() =>
-                  handleOpenGoogleMaps(selectedTripFilter !== 'all' ? selectedTripFilter : undefined)
-                }
-              />
-
-              {animRunning && (
-                <TruckTelemetryBar
-                  waypoint={animWaypoint}
-                  load={currentTruckLoad}
-                  prevLoad={prevTruckLoad}
-                  config={config}
-                  speed={animSpeed}
-                  onChangeSpeed={setAnimSpeed}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Tab 2: Efisiensi & Rincian Rute */}
-          {(activeMobileTab === 'efficiency' || activeMobileTab === 'all') && (
-            <div className="space-y-4">
-              <EfficiencyCard
-                result={result}
-                config={config}
-                convPlan={convPlan}
-                binCount={bins.length}
-                fixedTrip={fixedTrip}
-                selectedTripFilter={selectedTripFilter}
-                onSelectTripFilter={setSelectedTripFilter}
-                onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
-                showFixedComparison={showFixedComparison}
-                onToggleFixedComparison={() => setShowFixedComparison(prev => !prev)}
-                onOpenGoogleMapsForTrip={handleOpenGoogleMaps}
-              />
-
-              <TripBreakdownCard
-                result={result}
-                config={config}
-                manualSplitMode={manualSplitMode}
-                onSetSplitMode={setManualSplitMode}
-                selectedTripFilter={selectedTripFilter}
-                onSelectTripFilter={setSelectedTripFilter}
-                onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
-                fixedTrip={fixedTrip}
-                depot={depot}
-                onOpenGoogleMapsForTrip={handleOpenGoogleMaps}
-              />
-            </div>
-          )}
-
-          {/* Tab 3: Kapasitas TPS 3R & Status Tong */}
-          {(activeMobileTab === 'tps' || activeMobileTab === 'all') && (
-            <div className="space-y-4">
-              <TpsCapacityCard
-                depot={depot}
-                result={result}
-                config={config}
-                tpsMaxCapacity={tpsMaxCapacity}
-                tpsInitialWaste={tpsInitialWaste}
-                completedTripIds={completedTripIds}
-                onToggleTripCompleted={handleToggleTripCompleted}
-                onCompleteAllTrips={handleCompleteAllTrips}
-                onResetTps={handleResetTps}
-                onChangeMaxCapacity={handleChangeTpsMaxCapacity}
-                onChangeInitialWaste={handleChangeTpsInitialWaste}
-                selectedTripFilter={selectedTripFilter}
-                onSelectTripFilter={setSelectedTripFilter}
-                onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
-              />
-
-              <BinsQuickGrid
-                bins={bins}
-                config={config}
-                onOpenBinModal={handleOpenBinModal}
-              />
-            </div>
-          )}
-
-          {/* Tab 4: Kotak Aduan Warga */}
-          {(activeMobileTab === 'reports' || activeMobileTab === 'all') && (
-            <div>
-              <IncidentDesk
-                reports={reports}
-                bins={bins}
-                onTriggerDemoReport={handleTriggerDemoReport}
-                onClearResolved={handleClearResolvedReports}
-                onFocusBin={handleFocusBin}
-                onResolveReport={handleResolveReport}
-              />
-            </div>
-          )}
-        </div>
       </main>
-
-      {/* Mobile Fixed Bottom Navigation Bar */}
-      <nav
-        aria-label="Navigasi Bawah Seluler"
-        className="fixed bottom-0 left-0 right-0 z-35 flex items-center justify-around border-t border-[#D9DFD7] bg-white/95 py-1 px-1 shadow-lg backdrop-blur-md dark:border-[#243741] dark:bg-[#0E171B]/95 lg:hidden pb-[calc(0.35rem+env(safe-area-inset-bottom,0px))]"
-      >
-        <button
-          onClick={() => {
-            setActiveMobileTab('map');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`flex flex-1 flex-col items-center justify-center py-1 text-[10px] font-bold transition cursor-pointer ${
-            activeMobileTab === 'map'
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-[#5B6A60] hover:text-[#10303A] dark:text-[#8FB0B4] dark:hover:text-white'
-          }`}
-        >
-          <MapPin className={`h-4 w-4 ${activeMobileTab === 'map' ? 'scale-110' : ''}`} />
-          <span className="mt-0.5">Peta</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveMobileTab('efficiency');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`flex flex-1 flex-col items-center justify-center py-1 text-[10px] font-bold transition cursor-pointer ${
-            activeMobileTab === 'efficiency'
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-[#5B6A60] hover:text-[#10303A] dark:text-[#8FB0B4] dark:hover:text-white'
-          }`}
-        >
-          <Gauge className={`h-4 w-4 ${activeMobileTab === 'efficiency' ? 'scale-110' : ''}`} />
-          <span className="mt-0.5">Efisiensi</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveMobileTab('tps');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`flex flex-1 flex-col items-center justify-center py-1 text-[10px] font-bold transition cursor-pointer ${
-            activeMobileTab === 'tps'
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-[#5B6A60] hover:text-[#10303A] dark:text-[#8FB0B4] dark:hover:text-white'
-          }`}
-        >
-          <Warehouse className={`h-4 w-4 ${activeMobileTab === 'tps' ? 'scale-110' : ''}`} />
-          <span className="mt-0.5">TPS &amp; Tong</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveMobileTab('reports');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`relative flex flex-1 flex-col items-center justify-center py-1 text-[10px] font-bold transition cursor-pointer ${
-            activeMobileTab === 'reports'
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-[#5B6A60] hover:text-[#10303A] dark:text-[#8FB0B4] dark:hover:text-white'
-          }`}
-        >
-          <div className="relative">
-            <Inbox className={`h-4 w-4 ${activeMobileTab === 'reports' ? 'scale-110' : ''}`} />
-            {pendingReportCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-extrabold text-white">
-                {pendingReportCount}
-              </span>
-            )}
-          </div>
-          <span className="mt-0.5">Aduan</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveMobileTab('all');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`flex flex-1 flex-col items-center justify-center py-1 text-[10px] font-bold transition cursor-pointer ${
-            activeMobileTab === 'all'
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-[#5B6A60] hover:text-[#10303A] dark:text-[#8FB0B4] dark:hover:text-white'
-          }`}
-        >
-          <Layers className={`h-4 w-4 ${activeMobileTab === 'all' ? 'scale-110' : ''}`} />
-          <span className="mt-0.5">Semua</span>
-        </button>
-      </nav>
 
       {/* Footer */}
       <footer className="mt-8 border-t border-[#D9DFD7] bg-white py-4 dark:bg-[#101A1F] dark:border-[#243741]">
@@ -1311,12 +1002,6 @@ export default function App() {
         isOpen={depotModalOpen}
         onClose={() => setDepotModalOpen(false)}
         onSaveDepot={handleSaveDepotModal}
-      />
-
-      <TemplatesModal
-        isOpen={templatesModalOpen}
-        onClose={() => setTemplatesModalOpen(false)}
-        onApplyTemplate={handleApplyTemplate}
       />
 
       <ConfigModal

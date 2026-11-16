@@ -4,7 +4,7 @@ import { haversineRoadDistance } from './distanceMatrix';
 
 /**
  * Builds a universal Google Maps Turn-by-Turn Driving Navigation URL to a single destination point.
- * This URL format directly launches the native Google Maps app on Android / iOS or web browser in CAR / DRIVING mode.
+ * Opens Google Maps in web browser in CAR / DRIVING mode.
  * Parameter dirflg=d and travelmode=driving explicitly force 4-wheel automobile mode (bukan motor/roda dua).
  */
 /**
@@ -164,7 +164,7 @@ export function buildGoogleMapsUniversalApiUrl(
 
 /**
  * Maximum number of intermediate stops supported reliably by Google Maps in one route
- * before mobile apps truncate or throw directions limits.
+ * before directions limits or truncation occur.
  */
 export const MAX_GMAPS_WAYPOINTS_PER_ROUTE = 8;
 
